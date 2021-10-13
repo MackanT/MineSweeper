@@ -8,11 +8,16 @@ from Button import Button
 from Tile import Tile
 
 # Design Parameters
-gameScreenWidth = 1300
-gameOffset = 50
-tileWidth = 40
-numberColors = ['#FFFFFF', '#0000FF', '#007B00', '#FF0000', '#00007B', '#7B0000', '#007B7B', '#7B7B7B', '#000000']
-customColors = ['#565554', '#f6f193', '#7c7a77', '#cfd0d2', '#fbd083'] # Background Gray, Button Yellow, Hidden Tile Gray, Visible Tile Gray, Accent Orange
+game_screen_width = 1300
+game_offset = 50
+game_tile_width = 40
+
+# Number Colors
+number_colors = ['#FFFFFF', '#0000FF', '#007B00', '#FF0000', '#00007B', 
+                '#7B0000', '#007B7B', '#7B7B7B', '#000000']
+
+# Background Gray, Button Yellow, Hidden Tile Gray, Visible Tile Gray, Accent Orange
+custom_colors = ['#565554', '#f6f193', '#7c7a77', '#cfd0d2', '#fbd083'] 
 
 class Minesweeper():
     
@@ -21,300 +26,318 @@ class Minesweeper():
         # Screen Settings
         self.window = Tk()
         self.window.title('The Electric Boogaloo - Minesweeper 2')
-        self.canvas = Canvas(self.window, width = gameScreenWidth/2, height = gameScreenWidth/3, bg=customColors[0])
+        self.canvas = Canvas(self.window, 
+                             width = game_screen_width/2, 
+                             height = game_screen_width/3, 
+                             bg=custom_colors[0]
+                            )
         self.canvas.pack()
 
-        self.window.bind('<Button-1>', self.leftClick)
-        self.window.bind('<Button-2>', self.middleClick)
-        self.window.bind('<Button-3>', self.rightClick)
-        self.window.bind('<space>', self.middleClick)
+        self.window.bind('<Button-1>', self.left_click)
+        self.window.bind('<Button-2>', self.middle_click)
+        self.window.bind('<Button-3>', self.right_click)
+        self.window.bind('<space>', self.middle_click)
 
         # Graphical Settings
         self.font_text = ("GOST Common", 12, "bold")
 
         # Image Loading
         self.cwd = os.getcwd()
-        imageFileName = self.cwd + "\\images\\startup.png"
-        self.startUpSplash = PhotoImage(file=imageFileName)
+        image_file_name_startup = self.cwd + "\\images\\startup.png"
+        self.startUpSplash = PhotoImage(file=image_file_name_startup)
 
         # Global Game Settings
-        self.booleanGameActive = False
-        self.booleanStartup = True
-        self.booleanFirstClick = True
+        self.boolean_game_active = False
+        self.boolean_startup = True
+        self.boolean_first_click = True
 
         # Highscores
-        self.saveFiles = ['easy', 'medium', 'hard']
-        self.savedHighscores = 10
-        self.easyScores = []
-        self.mediumScores = []
-        self.hardScores = []
-        self.highScores = [self.easyScores, self.mediumScores, self.hardScores]
+        self.text_save_file_names = ['easy', 'medium', 'hard']
+        self.int_number_saved_highscores = 10
+        self.array_easy_scores = []
+        self.array_medium_scores = []
+        self.array_hard_scores = []
+        self.array_high_scores = [self.array_easy_scores, 
+                                  self.array_medium_scores, 
+                                  self.array_hard_scores
+                                 ]
 
         # Fixed Game Settings
-        self.buttonNames     = ['Easy', 'Intermediate', 'Hard', 'Quit']
-        self.numberOfRows    = [9, 16, 16]
-        self.numberOfColumns = [9, 16, 30]
-        self.numberOfMines   = [10, 40, 99]
-        self.gameRows = self.gameCols = self.gameMines = 0   
+        self.text_startup_button_names = ['Easy', 'Intermediate', 
+                                          'Hard', 'Quit']
+        self.int_number_game_rows    = [9, 16, 16]
+        self.int_number_game_columns = [9, 16, 30]
+        self.int_number_game_mines   = [10, 40, 99]
+        self.int_current_game_rows = self.int_current_game_columns = 0 
+        self.int_current_game_mines = 0
+        self.int_current_game_time = self.int_current_flag_count = 0
 
-        self.currentTime = self.currentFlagged = 0
-        self.currentDifficulty = None
-        self.startTimer()
+        self.int_current_difficulty = None
+        self.start_timer()
 
-        self.startUpScreenButtons = []
-        self.currentBoard = []
+        self.array_startup_buttons = []
+        self.array_current_game_board = []
 
-        self.drawStartup()
-        self.loadHighscores()
+        self.draw_startup()
+        self.load_highscores()
 
     def mainloop(self):
         self.window.mainloop()
 
-    def startTimer(self):
-        threading.Timer(1.0, self.startTimer).start()
-        if self.booleanGameActive == True:
-            self.currentTime += 1
-            self.canvas.itemconfig(self.timeMarker, text=str(self.currentTime))
+    def start_timer(self):
+        threading.Timer(1.0, self.start_timer).start()
+        if self.boolean_game_active == True:
+            self.int_current_game_time += 1
+            self.canvas.itemconfig(self.display_time_marker, 
+                                   text=str(self.int_current_game_time)
+                                   )
 
-    def resetTimer(self):
-        self.currentTime = 0
+    def reset_timer(self):
+        self.int_current_game_time = 0
 
-    def loadHighscores(self):
-        for i in range(len(self.saveFiles)):
-            fileLocation = self.cwd + "/highscores/" + self.saveFiles[i] + '.txt'
-            workingFile = open(fileLocation)
+    def load_highscores(self):
+        for i in range(len(self.text_save_file_names)):
+            highscores_file_name = (self.cwd + "/highscores/" 
+                                    + self.text_save_file_names[i] + '.txt'
+                                   )
+            highscores_opened_file = open(highscores_file_name)
 
-            for line in workingFile:
-                commaPos = line.find(',')
-                self.highScores[i].append(line[0:commaPos])
-            workingFile.close()
+            for line in highscores_opened_file:
+                comma_position = line.find(',')
+                self.array_high_scores[i].append(line[0:comma_position])
+            highscores_opened_file.close()
 
-    def saveHighscores(self):
-        fileLocation = self.cwd + "/highscores/" + self.saveFiles[self.currentDifficulty] + '.txt'
-        workingFile = open(fileLocation, 'w')
+    def save_highscores(self):
+        highscores_file_name = (self.cwd + "/highscores/" 
+                    + self.text_save_file_names[self.int_current_difficulty] 
+                    + '.txt')
+        highscores_opened_file = open(highscores_file_name, 'w')
 
-        for element in self.highScores[self.currentDifficulty]:
-            outputText = str(element) + ', M@ckanT \n'
-            workingFile.write(outputText)
-        workingFile.close()
+        ##### Add code for chanign username!
+        for element in self.array_high_scores[self.int_current_difficulty]:
+            output_text = str(element) + ', M@ckanT \n'
+            highscores_opened_file.write(output_text)
+        highscores_opened_file.close()
 
-    def checkHighscores(self):
+    def check_highscores(self):
 
         print('checking highscores')
-        currentGameTime = self.currentTime
-        tempList = self.highScores[self.currentDifficulty]
-        saveScores = False
+        current_game_time = self.int_current_game_time
+        temp_list = self.array_high_scores[self.int_current_difficulty]
+        save_score = False
         
-        for i in range(self.savedHighscores):
+        for i in range(self.int_number_saved_highscores):
 
-            if i >= len(tempList):
+            if i >= len(temp_list):
                 break
-            elif currentGameTime < int(tempList[i]):
-                saveScores = True
-                print('New Highscore! %d seconds time' %(currentGameTime)) 
+            elif current_game_time < int(temp_list[i]):
+                save_score = True
+                print('New Highscore! %d seconds time' %(current_game_time)) 
                 if i == 0:
-                    tempList = [currentGameTime] + tempList
+                    temp_list = [current_game_time] + temp_list
                 else:
-                    tempList = tempList[0:i] + [str(currentGameTime)] + tempList[i:]
-                    if len(tempList) > self.savedHighscores: tempList = tempList[0:(self.savedHighscores-1)]     
+                    temp_list = (temp_list[0:i] + [str(current_game_time)] 
+                                 + temp_list[i:])
+                    if len(temp_list) > self.int_number_saved_highscores: 
+                        temp_list = temp_list[0:(self.int_number_saved_highscores-1)]     
                 
-                if saveScores == True:
-                    self.highScores[self.currentDifficulty] = tempList
-                    self.saveHighscores()
+                if save_score == True:
+                    self.array_high_scores[self.int_current_difficulty] = temp_list
+                    self.save_highscores()
                     break
 
-    def leaveStartup(self, buttonClicked):
-        self.gameRows = self.numberOfRows[buttonClicked]
-        self.gameCols = self.numberOfColumns[buttonClicked]
-        self.gameMines = self.numberOfMines[buttonClicked]
-        self.currentDifficulty = buttonClicked
-        self.booleanStartup = False
-        self.newGame()
+    def leave_startup(self, button_clicked):
+        self.int_current_game_rows = self.int_number_game_rows[button_clicked]
+        self.int_current_game_columns = self.int_number_game_columns[button_clicked]
+        self.int_current_game_mines = self.int_number_game_mines[button_clicked]
+        self.int_current_difficulty = button_clicked
+        self.boolean_startup = False
+        self.new_game()
     
-    def leftClick(self, event): 
+    def left_click(self, event): 
         # Use buttons on startup screen
-        if self.booleanStartup == True:
-            buttonClicked = self.startUpScreenButtonClicked(event.x, event.y)
-            self.window.destroy() if buttonClicked == 3 else self.leaveStartup(buttonClicked)
+        if self.boolean_startup == True:
+            button_clicked = self.startup_button_clicked(event.x, event.y)
+            self.window.destroy() if button_clicked == 3 else self.leave_startup(button_clicked)
         else:
-            if self.newGameButton.pointInBox(event.x, event.y) == True:
-                self.newGame()
+            if self.new_game_button.point_in_box(event.x, event.y) == True:
+                self.new_game()
             else: 
-                if self.booleanFirstClick == True:
+                if self.boolean_first_click == True:
                     # Restart game until OK start - unoptimal, but works
-                    while self.tileAction('num', event) != 0 or self.tileAction('bomb', event) == True:
-                        self.newGame()
-                    self.booleanFirstClick = False
-                    self.booleanGameActive = True
-                    self.tileAction('open', event)
-                elif self.booleanGameActive == True:
-                    self.tileAction('open', event)
+                    while self.tile_action('num', event) != 0 or self.tile_action('bomb', event) == True:
+                        self.new_game()
+                    self.boolean_first_click = False
+                    self.boolean_game_active = True
+                    self.tile_action('open', event)
+                elif self.boolean_game_active == True:
+                    self.tile_action('open', event)
 
-    def startUpScreenButtonClicked(self, x, y):
-        positionIterator = 0
-        for item in self.startUpScreenButtons: 
-            if self.startUpScreenButtons[positionIterator].pointInBox(x, y) == True:
-                return positionIterator
+    def startup_button_clicked(self, x, y):
+        position_iterator = 0
+        for item in self.array_startup_buttons: 
+            if self.array_startup_buttons[position_iterator].point_in_box(x, y) == True:
+                return position_iterator
             else:
-                positionIterator = positionIterator + 1
+                position_iterator = position_iterator + 1
 
-    def rightClick(self, event):
-        if self.booleanGameActive == True or self.booleanFirstClick == True:
-           self.tileAction('flag', event)
-           self.countFlags()
+    def right_click(self, event):
+        if self.boolean_game_active == True or self.boolean_first_click == True:
+           self.tile_action('flag', event)
+           self.count_flags()
     
-    def middleClick(self, event):
-        if self.booleanGameActive == True or self.booleanFirstClick == True:
-            workTile = self.tileAction('tile', event)
+    def middle_click(self, event):
+        if self.boolean_game_active == True or self.boolean_first_click == True:
+            work_tile = self.tile_action('tile', event)
 
-            if workTile.getHidden() == True:
-               workTile.setFlag()
-               self.countFlags()
-            elif workTile.isHidden == False and workTile.getFlag() == False:
-                if self.countNearbyFlags(workTile) == workTile.getNum():
-                    self.openSquare(workTile)
+            if work_tile.get_hidden() == True:
+               work_tile.set_flag()
+               self.count_flags()
+            elif work_tile.is_hidden == False and work_tile.get_flag() == False:
+                if self.count_nearby_flags(work_tile) == work_tile.get_tile_number():
+                    self.open_square(work_tile)
     
-    def isTile(self, x, y):
-        if x >= 0 and x < self.gameCols and y >= 0 and y < self.gameRows:
+    def is_tile(self, x, y):
+        if x >= 0 and x < self.int_current_game_columns and y >= 0 and y < self.int_current_game_rows:
             return True
         else:
             return False
 
-    def tileAction(self, function, event):
-        clickedCol = (event.x - gameOffset) / tileWidth
-        clickedRow = (event.y - gameOffset) / tileWidth
-        clickedCol = int(clickedCol) if clickedCol > 0 else -1
-        clickedRow = int(clickedRow) if clickedRow > 0 else -1
+    def tile_action(self, function, event):
+        clicked_col = (event.x - game_offset) / game_tile_width
+        clicked_row = (event.y - game_offset) / game_tile_width
+        clicked_col = int(clicked_col) if clicked_col > 0 else -1
+        clicked_row = int(clicked_row) if clicked_row > 0 else -1
 
-        if self.isTile(clickedCol, clickedRow) == True:
-            tile = self.currentBoard[clickedRow][clickedCol]
+        if self.is_tile(clicked_col, clicked_row) == True:
+            tile = self.array_current_game_board[clicked_row][clicked_col]
 
             if function == 'num':
-                return tile.getNum()
+                return tile.get_tile_number()
             elif function == 'bomb':
-                return tile.getBomb()
+                return tile.get_bomb()
             elif function == 'flag':
-                tile.setFlag()
+                tile.set_flag()
             elif function == 'open':
-                self.openTileFunction(tile)
+                self.open_tile_function(tile)
             elif function == 'tile':
                 return tile
 
-    def checkLoss(self, tile):
-        if tile.getBomb() == True and tile.getFlag() == False:
-            for i in range(self.gameCols):
-                for j in range(self.gameRows):
-                    if self.currentBoard[j][i].isBomb == True:
-                        self.currentBoard[j][i].openTile()
-            self.booleanGameActive = False
+    def check_loss(self, tile):
+        if tile.get_bomb() == True and tile.get_flag() == False:
+            for i in range(self.int_current_game_columns):
+                for j in range(self.int_current_game_rows):
+                    if self.array_current_game_board[j][i].is_bomb == True:
+                        self.array_current_game_board[j][i].open_tile()
+            self.boolean_game_active = False
 
-    def checkVictory(self):
-        for i in range(self.gameCols):
-            for j in range(self.gameRows):
-                if self.currentBoard[j][i].getHidden() == True and self.currentBoard[j][i].getBomb() == False:
+    def check_victory(self):
+        for i in range(self.int_current_game_columns):
+            for j in range(self.int_current_game_rows):
+                if self.array_current_game_board[j][i].get_hidden() == True and self.array_current_game_board[j][i].get_bomb() == False:
                     return
-        self.openRemainingTiles()
-        self.booleanGameActive = False
-        self.checkHighscores()
+        self.open_remaining_tiles()
+        self.boolean_game_active = False
+        self.check_highscores()
 
-    def openTileFunction(self, tile):
-        tile.openTile()
-        self.openZeros(tile)
-        self.checkLoss(tile)
-        self.checkVictory()
+    def open_tile_function(self, tile):
+        tile.open_tile()
+        self.open_zeros(tile)
+        self.check_loss(tile)
+        self.check_victory()
 
-    def openRemainingTiles(self):
-        for i in range(self.gameCols):
-            for j in range(self.gameRows):
-                if self.currentBoard[j][i].getBomb() == False:
-                    self.currentBoard[j][i].openTile()
+    def open_remaining_tiles(self):
+        for i in range(self.int_current_game_columns):
+            for j in range(self.int_current_game_rows):
+                if self.array_current_game_board[j][i].get_bomb() == False:
+                    self.array_current_game_board[j][i].open_tile()
                 else:
-                    self.currentBoard[j][i].forceFlag()
+                    self.array_current_game_board[j][i].force_flag()
 
-    def newGame(self):
-        self.booleanFirstClick = True
-        self.booleanGameActive = False
+    def new_game(self):
+        self.boolean_first_click = True
+        self.boolean_game_active = False
         self.numberOfClicks = 0
-        self.resetTimer()
+        self.reset_timer()
         self.canvas.delete("all")
-        self.drawBoard()
+        self.draw_board()
 
-    def openZeros(self, tile):
-        if tile.getNum() == 0:
-            self.openSquare(tile)
+    def open_zeros(self, tile):
+        if tile.get_tile_number() == 0:
+            self.open_square(tile)
 
-    def countNearbyFlags(self, tile):
+    def count_nearby_flags(self, tile):
 
-        numberOfFlags = 0
-        for k in range(tile.getRow()-1, tile.getRow()+2):
-            for l in range(tile.getCol()-1, tile.getCol()+2): 
+        number_of_flags = 0
+        for k in range(tile.get_row()-1, tile.get_row()+2):
+            for l in range(tile.get_col()-1, tile.get_col()+2): 
                 try:
-                    if self.currentBoard[k][l].getFlag() == True and k >= 0 and l >= 0:
-                        numberOfFlags += 1
+                    if self.array_current_game_board[k][l].get_flag() == True and k >= 0 and l >= 0:
+                        number_of_flags += 1
                 except: 
                     pass
-        return numberOfFlags
+        return number_of_flags
 
-    def countFlags(self):
-        usedFlags = 0
-        for i in range(self.gameCols):
-            for j in range(self.gameRows):
-                if self.currentBoard[j][i].getFlag() == True:
-                    usedFlags += 1
-        self.canvas.itemconfig(self.flagMarker, text=str(usedFlags))
+    def count_flags(self):
+        used_flags = 0
+        for i in range(self.int_current_game_columns):
+            for j in range(self.int_current_game_rows):
+                if self.array_current_game_board[j][i].get_flag() == True:
+                    used_flags += 1
+        self.canvas.itemconfig(self.display_flag_marker, text=str(used_flags))
 
-    def openSquare(self, tile):
-        if tile.getBomb() == False:
-            for k in range(tile.getRow()-1, tile.getRow()+2):
-                for l in range(tile.getCol()-1, tile.getCol()+2): 
+    def open_square(self, tile):
+        if tile.get_bomb() == False:
+            for k in range(tile.get_row()-1, tile.get_row()+2):
+                for l in range(tile.get_col()-1, tile.get_col()+2): 
                     try:
-                        if self.currentBoard[k][l].isHidden == True and k >= 0 and l >= 0 and self.currentBoard[k][l].getFlag() == False:
-                            self.openTileFunction(self.currentBoard[k][l])
+                        if self.array_current_game_board[k][l].is_hidden == True and k >= 0 and l >= 0 and self.array_current_game_board[k][l].get_flag() == False:
+                            self.open_tile_function(self.array_current_game_board[k][l])
                     except: 
                         1
 
-    def drawStartup(self):
-        for i in range(len(self.buttonNames)):
-            self.startUpScreenButtons.append(Button(gameScreenWidth/3 - gameOffset, (2+2*i)*tileWidth, gameScreenWidth/6, 1.5*tileWidth, self.buttonNames[i], customColors[1], self.canvas))
-        self.canvas.create_image(gameOffset,2*tileWidth, anchor=NW, image = self.startUpSplash)
+    def draw_startup(self):
+        for i in range(len(self.text_startup_button_names)):
+            self.array_startup_buttons.append(Button(game_screen_width/3 - game_offset, (2+2*i)*game_tile_width, game_screen_width/6, 1.5*game_tile_width, self.text_startup_button_names[i], custom_colors[1], self.canvas))
+        self.canvas.create_image(game_offset,2*game_tile_width, anchor=NW, image = self.startUpSplash)
 
-    def drawBoard(self):
+    def draw_board(self):
 
-        self.currentBoard = [[Tile(i, j, tileWidth, None, None, gameOffset, self.canvas) for j in range(self.gameCols)] for i in range(self.gameRows)]
+        self.array_current_game_board = [[Tile(i, j, game_tile_width, None, None, game_offset, self.canvas) for j in range(self.int_current_game_columns)] for i in range(self.int_current_game_rows)]
         
-        winWidth = self.gameCols * tileWidth + 2*gameOffset
-        winHeight = self.gameRows * tileWidth + 2*gameOffset
+        win_width = self.int_current_game_columns * game_tile_width + 2*game_offset
+        win_height = self.int_current_game_rows * game_tile_width + 2*game_offset
 
-        self.canvas.config(width=winWidth,height=winHeight)
-        self.newGameButton = Button(winWidth/2-gameOffset, 10, 2*gameOffset , 30, 'Newgame', customColors[1], self.canvas)
-        self.flagMarker = self.canvas.create_text(tileWidth*(self.gameCols-1/2) + gameOffset, gameOffset/2, fill='white', font='arial 20', text='0')
-        self.timeMarker = self.canvas.create_text(tileWidth/2 + gameOffset, gameOffset/2, fill='white', font='arial 20', text='0')
+        self.canvas.config(width=win_width,height=win_height)
+        self.new_game_button = Button(win_width/2-game_offset, 10, 2*game_offset , 30, 'New Game', custom_colors[1], self.canvas)
+        self.display_flag_marker = self.canvas.create_text(game_tile_width*(self.int_current_game_columns-1/2) + game_offset, game_offset/2, fill='white', font='arial 20', text='0')
+        self.display_time_marker = self.canvas.create_text(game_tile_width/2 + game_offset, game_offset/2, fill='white', font='arial 20', text='0')
 
         # Set bombs
-        tileIndexes = range(self.gameRows*self.gameCols)
-        bombIndexes = random.sample(tileIndexes, self.gameMines)
-        for index in bombIndexes:
-            self.currentBoard[int(index/self.gameCols)][index%self.gameCols].setBomb()
+        tile_indexes = range(self.int_current_game_rows*self.int_current_game_columns)
+        bomb_indexes = random.sample(tile_indexes, self.int_current_game_mines)
+        for index in bomb_indexes:
+            self.array_current_game_board[int(index/self.int_current_game_columns)][index%self.int_current_game_columns].set_bomb()
 
-        self.calculateTileNumbers()
+        self.calculate_tile_numbers()
 
-    def calculateTileNumbers(self):
+    def calculate_tile_numbers(self):
         # Calculate adjacent bombs
-        for i in range(self.gameRows):
-            for j in range(self.gameCols):
-                tile = self.currentBoard[i][j]
-                tileBombNumber = 0
-                if tile.getBomb() == False:
-                    for k in range(tile.getRow()-1, tile.getRow()+2):
-                        for l in range(tile.getCol()-1, tile.getCol()+2): 
+        for i in range(self.int_current_game_rows):
+            for j in range(self.int_current_game_columns):
+                tile = self.array_current_game_board[i][j]
+                tile_bomb_number = 0
+                if tile.get_bomb() == False:
+                    for k in range(tile.get_row()-1, tile.get_row()+2):
+                        for l in range(tile.get_col()-1, tile.get_col()+2): 
                             try:
-                                if self.currentBoard[k][l].getBomb() == True and k >= 0 and l >= 0:
-                                    tileBombNumber += 1
+                                if self.array_current_game_board[k][l].get_bomb() == True and k >= 0 and l >= 0:
+                                    tile_bomb_number += 1
                             except: 
-                                tileBombNumber += 0
+                                tile_bomb_number += 0
                 else:
-                    tileBombNumber = 0
-                tile.setNum(tileBombNumber, numberColors[tileBombNumber])
+                    tile_bomb_number = 0
+                tile.set_tile_number(tile_bomb_number, number_colors[tile_bomb_number])
 
 game_instance = Minesweeper()
 game_instance.mainloop()

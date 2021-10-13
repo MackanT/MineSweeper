@@ -2,37 +2,37 @@ from tkinter import *
 
 class Button:
 
-    def __init__(self, xPos, yPos, width, height, text, color, canvas):
+    def __init__(self, x_pos, y_pos, width, height, text, color, canvas):
         self.canvas = canvas
-        self.xPos = xPos
-        self.yPos = yPos
+        self.x_pos = x_pos
+        self.y_pos = y_pos
         self.width = width
         self.height = height
         self.text = text
         self.color = color
 
-        self.buttonArea = canvas.create_rectangle(xPos, yPos,xPos + width, yPos + height, fill=self.color)
-        self.buttonText = canvas.create_text(xPos + width/2, yPos + height/2, text=text)
+        self.buttonArea = canvas.create_rectangle(x_pos, y_pos,x_pos + width, y_pos + height, fill=self.color)
+        self.buttonText = canvas.create_text(x_pos + width/2, y_pos + height/2, text=text)
 
-    def getX(self):
-        return self.xPos
+    def get_x(self):
+        return self.x_pos
 
-    def getY(self):
-        return self.yPos
+    def get_y(self):
+        return self.y_pos
 
-    def getWidth(self):
+    def get_width(self):
         return self.width
 
-    def getHeight(self):
+    def get_height(self):
         return self.height
 
-    def getName(self):
+    def get_name(self):
         return self.text
 
-    def pointInBox(self, x, y):
+    def point_in_box(self, x, y):
 
-        xBool = (x >= self.xPos) and (x <= self.xPos + self.width)
-        yBool = (y >= self.yPos) and (y <= self.yPos + self.height)
+        x_bool = (x >= self.x_pos) and (x <= self.x_pos + self.width)
+        y_bool = (y >= self.y_pos) and (y <= self.y_pos + self.height)
 
-        if xBool == True and yBool == True:
+        if x_bool == True and y_bool == True:
             return True

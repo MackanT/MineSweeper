@@ -2,89 +2,89 @@ from tkinter import *
 
 class Tile:
 
-    def __init__(self, row, col, width, isBomb, num, gameOffset, canvas):
+    def __init__(self, row, col, width, is_bomb, num, game_offset, canvas):
         self.canvas = canvas
         self.row = row
         self.col = col
         self.width = width
-        self.gameOffset = gameOffset
+        self.game_offset = game_offset
         self.colors = ['#7c7a77', '#cfd0d2', '#fbd083', '#ed2939']
         self.color = None
 
-        self.isHidden = True # Hidden / Opened
-        self.isFlagged = False
-        self.isBomb = False
+        self.is_hidden = True # Hidden / Opened
+        self.is_flagged = False
+        self.is_bomb = False
         self.num = num
         
-        self.tileArea = canvas.create_rectangle(self.getX(0), self.getY(0),self.getX(1), self.getY(1), fill=self.colors[0])
-        self.textArea = canvas.create_text(self.gameOffset + self.width/2 + self.col * self.width,self.gameOffset + self.width/2 + self.row * self.width, font="arial 20", text="")
+        self.tile_area = canvas.create_rectangle(self.get_x(0), self.get_y(0),self.get_x(1), self.get_y(1), fill=self.colors[0])
+        self.text_area = canvas.create_text(self.game_offset + self.width/2 + self.col * self.width,self.game_offset + self.width/2 + self.row * self.width, font="arial 20", text="")
 
         # Idea for flag, not nice.
-        #self.flagBase = canvas.create_rectangle(self.getX(0) + width/3, self.getY(1) - width/10, self.getX(1) - width/3, self.getY(1) - 2*width/10, fill="black")
-        #self.flagPole = canvas.create_rectangle(self.getX(0) + width/2, self.getY(1) - width/10, self.getX(1) - width/2, self.getY(1) - 2*width/3, fill="black")
-        #self.flagCloth = canvas.create_polygon([self.getX(1) - width/2, self.getY(1) - 2*width/3, self.getX(1) - width/4, self.getY(1) - width/2, self.getX(1) - width/2, self.getY(1) - width/3], fill='red')
+        #self.flagBase = canvas.create_rectangle(self.get_x(0) + width/3, self.get_y(1) - width/10, self.get_x(1) - width/3, self.get_y(1) - 2*width/10, fill="black")
+        #self.flagPole = canvas.create_rectangle(self.get_x(0) + width/2, self.get_y(1) - width/10, self.get_x(1) - width/2, self.get_y(1) - 2*width/3, fill="black")
+        #self.flagCloth = canvas.create_polygon([self.get_x(1) - width/2, self.get_y(1) - 2*width/3, self.get_x(1) - width/4, self.get_y(1) - width/2, self.get_x(1) - width/2, self.get_y(1) - width/3], fill='red')
 
-    def getX(self, colNumber):
-        return (self.col + colNumber)*self.width + self.gameOffset
+    def get_x(self, col_number):
+        return (self.col + col_number)*self.width + self.game_offset
     
-    def getY(self, rowNumber): 
-        return (self.row + rowNumber)*self.width + self.gameOffset
+    def get_y(self, row_number): 
+        return (self.row + row_number)*self.width + self.game_offset
 
-    def updateTile(self, info):
+    def update_tile(self, info):
         if info == 'Flag':
-            if self.isFlagged == True:
-                self.setColor(2)
-            elif self.isFlagged == False:
-                self.setColor(0)
+            if self.is_flagged == True:
+                self.set_color(2)
+            elif self.is_flagged == False:
+                self.set_color(0)
         elif info == 'Bomb':
-            self.setColor(3)
+            self.set_color(3)
         elif info == 'Visible':
-            self.setColor(1)
+            self.set_color(1)
 
-    def setColor(self, colorNumber):
-        self.canvas.itemconfig(self.tileArea, fill=self.colors[colorNumber])
+    def set_color(self, color_number):
+        self.canvas.itemconfig(self.tile_area, fill=self.colors[color_number])
 
-    def getRow(self):
+    def get_row(self):
         return self.row
 
-    def getCol(self):
+    def get_col(self):
         return self.col
 
-    def getBomb(self):
-        return self.isBomb
+    def get_bomb(self):
+        return self.is_bomb
     
-    def setBomb(self):
-        self.isBomb = True
+    def set_bomb(self):
+        self.is_bomb = True
         self.num = -1
 
-    def getFlag(self):
-        return self.isFlagged
+    def get_flag(self):
+        return self.is_flagged
 
-    def setFlag(self):
-        if self.isHidden == True:
-            self.isFlagged = not self.isFlagged
-            self.updateTile('Flag')
+    def set_flag(self):
+        if self.is_hidden == True:
+            self.is_flagged = not self.is_flagged
+            self.update_tile('Flag')
 
-    def forceFlag(self):
-        self.isFlagged = True
-        self.updateTile('Flag')
+    def force_flag(self):
+        self.is_flagged = True
+        self.update_tile('Flag')
     
-    def getHidden(self):
-        return self.isHidden
+    def get_hidden(self):
+        return self.is_hidden
 
-    def openTile(self):
-        if self.isHidden == True and self.isFlagged == False:
-            self.isHidden = False
-            self.updateTile('Visible')
+    def open_tile(self):
+        if self.is_hidden == True and self.is_flagged == False:
+            self.is_hidden = False
+            self.update_tile('Visible')
             
-            if self.isBomb == False and self.num != 0:
-                self.canvas.itemconfig(self.textArea, text=str(self.num), fill=self.color)
-            elif self.isBomb == True:
-                self.setColor(3)
+            if self.is_bomb == False and self.num != 0:
+                self.canvas.itemconfig(self.text_area, text=str(self.num), fill=self.color)
+            elif self.is_bomb == True:
+                self.set_color(3)
 
-    def getNum(self):
+    def get_tile_number(self):
         return self.num
 
-    def setNum(self, num, color):
+    def set_tile_number(self, num, color):
         self.num = num
         self.color = color
