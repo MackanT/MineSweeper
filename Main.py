@@ -34,6 +34,7 @@ class Game_state(Enum):
     MENU = 0
     START = 1
     GAME = 2
+    DONE = 3
 
 class Minesweeper():
     
@@ -317,7 +318,7 @@ class Minesweeper():
 
     def check_loss(self, tile):
         if tile.get_bomb() and not tile.get_flag():
-            self.game_state = Game_state.START
+            self.game_state = Game_state.DONE
             for i in range(self.int_current_game_columns):
                 for j in range(self.int_current_game_rows):
                     if self.array_current_game_board[j][i].is_bomb:
@@ -331,7 +332,7 @@ class Minesweeper():
                 is_bomb = self.array_current_game_board[j][i].get_bomb()
                 if is_hidden and not is_bomb : return
 
-        self.game_state = Game_state.START
+        self.game_state = Game_state.DONE
         self.open_remaining_tiles()
         self.check_highscores()
 
