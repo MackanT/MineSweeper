@@ -1,5 +1,6 @@
 from tkinter import *
 from array import *
+import simpleaudio as sa
 import os
 import threading
 import numpy as np
@@ -48,13 +49,9 @@ class Minesweeper():
         self.window.bind('<Button-3>', self.right_click)
         self.window.bind('<space>', self.middle_click)
 
-        # Graphical Settings
+        # Graphical Loading
         self.font_text = ("GOST Common", 12, "bold")
-
-        # Image Loading
-        self.cwd = os.getcwd()
-        image_file_name_startup = self.cwd + "\\images\\startup.png"
-        self.startUpSplash = PhotoImage(file=image_file_name_startup)
+        self.start_up_splash = self.get_image('startup')
 
         # Global Game Settings
         self.boolean_game_active = False
@@ -104,7 +101,7 @@ class Minesweeper():
 
     def reset_timer(self):
         self.int_current_game_time = 0
-
+ 
     def load_highscores(self):
         for i in range(len(self.text_save_file_names)):
             highscores_file_name = (self.cwd + "/highscores/" 
@@ -156,6 +153,27 @@ class Minesweeper():
                     self.save_highscores()
                     break
 
+
+### Load Functions
+
+    def get_image(self, filename, folder='images'):
+        
+        file_name = cwd + '\\' + folder + '\\' + filename + '.png'
+        return PhotoImage(file=file_name)
+
+    def load_sound(self, file_name):
+        """ loads specified sound file as wave object """
+        return sa.WaveObject.from_wave_file(self.cwd 
+                        + '\\sound\\' + file_name + '.wav')
+
+    def play_sound(self, file_name):
+        """ Plays specified sound file """ 
+        if file_name == 'home_button':
+            self.sound_home_button.play()
+        elif file_name == 'place_tower':
+            self.sound_place_tile.play()
+
+### Draw Game Functions
     def leave_startup(self, button_clicked):
         self.int_current_game_rows = self.int_number_game_rows[button_clicked]
         self.int_current_game_columns = self.int_number_game_columns[button_clicked]
