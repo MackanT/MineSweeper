@@ -75,8 +75,6 @@ class Minesweeper():
                                  ]
 
         # Fixed Game Settings
-        self.text_startup_button_names = ['Easy', 'Intermediate', 
-                                          'Hard', 'Quit']
         self.int_number_game_rows    = [9, 16, 16]
         self.int_number_game_columns = [9, 16, 30]
         self.int_number_game_mines   = [10, 40, 99]
@@ -186,21 +184,58 @@ class Minesweeper():
         self.int_current_difficulty = button_clicked
         self.game_state = Game_state.START
         self.new_game()
+
+    def menu_difficulty_select(self):
+        self.draw_startup_buttons(case=1)
     
+    def menu_statistics(self):
+        print('menu stats')
+
+    def menu_settings(self):
+        print('menu settings')
+
+    def menu_credits(self):
+        print('menu credits')
+    
+    def moved_mouse(self, event):
+        """ Fired by mouse movement, calls appropriate function depending on game state """
+        if (self.state_game == 0): self.home_button_sound(event)
+
     def left_click(self, event): 
 
         # Use buttons on startup screen
         if self.game_state == Game_state.MENU:
 
             button_clicked = self.startup_button_clicked(event.x, event.y)
-            self.window.destroy() if button_clicked == 3 else self.leave_startup(button_clicked)
+            if button_clicked == None: return
+
+            if button_clicked == startup_button_names[0]:
+                self.menu_difficulty_select()
+            elif button_clicked == startup_button_names[1]:
+                self.menu_statistics()
+            elif button_clicked == startup_button_names[2]:
+                self.menu_settings()
+            elif button_clicked == startup_button_names[3]: 
+                self.menu_credits()
+            elif button_clicked == startup_button_names[4]:
+                self.window.destroy()
+            elif button_clicked == startup_difficulty_names[0]:
+                self.leave_startup(0)
+            elif button_clicked == startup_difficulty_names[1]:
+                self.leave_startup(1)
+            elif button_clicked == startup_difficulty_names[2]:
+                self.leave_startup(2)
+            elif button_clicked == startup_difficulty_names[3]:
+                self.draw_startup_buttons(case=0)
+
+        # New game button from within game
         else:
-            if self.new_game_button.point_in_box(event.x, event.y) == True:
+            if self.new_game_button.point_in_box(event.x, event.y):
                 self.new_game()
             else: 
                 if self.game_state == Game_state.START:
                     # Restart game until OK start - unoptimal, but works
-                    while self.tile_action('num', event) != 0 or self.tile_action('bomb', event) == True:
+                    while self.tile_action('num', event) != 0 or self.tile_action('bomb', event):
                         self.new_game()
                     self.game_state = Game_state.GAME
                     self.tile_action('open', event)
@@ -208,12 +243,9 @@ class Minesweeper():
                     self.tile_action('open', event)
 
     def startup_button_clicked(self, x, y):
-        position_iterator = 0
-        for item in self.array_startup_buttons: 
-            if self.array_startup_buttons[position_iterator].point_in_box(x, y) == True:
-                return position_iterator
-            else:
-                position_iterator = position_iterator + 1
+        for i, item in enumerate(self.array_startup_buttons): 
+            if item.point_in_box(x, y):
+                return self.array_startup_buttons[i].get_name()
 
     def right_click(self, event):
         if self.game_state == (Game_state.GAME or Game_state.START):
@@ -327,9 +359,37 @@ class Minesweeper():
                         1
 
     def draw_startup(self):
-        for i in range(len(self.text_startup_button_names)):
-            self.array_startup_buttons.append(Button(game_screen_width/3 - game_offset, (2+2*i)*game_tile_width, game_screen_width/6, 1.5*game_tile_width, self.text_startup_button_names[i], custom_colors[1], self.canvas))
-        self.canvas.create_image(game_offset,2*game_tile_width, anchor=NW, image = self.startUpSplash)
+
+        self.draw_startup_buttons(case=0)
+        self.canvas.create_image(game_border,startup_height/2, anchor=W, 
+                                 image = self.start_up_splash)
+
+    def draw_startup_buttons(self, case=0):
+        
+        button_list = startup_button_names
+
+        if case == 1:
+            button_list = startup_difficulty_names
+
+        button_len = len(button_list)
+        button_height = int( (startup_height - 2*game_border) / button_len)
+
+        for i, item in enumerate(self.array_startup_buttons):
+            item.delete_button()
+        self.array_startup_buttons.clear()
+
+        for i, name in enumerate(button_list):
+            self.array_startup_buttons.append(
+                    Button(
+                        canvas=self.canvas,
+                        x_pos=startup_width/2, 
+                        y_pos=game_border+i*button_height, 
+                        width=startup_width/2-game_border, 
+                        height=0.7*button_height, 
+                        text=name, 
+                        color=custom_colors[1], 
+                    )
+            )
 
     def draw_board(self):
 
