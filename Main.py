@@ -203,7 +203,6 @@ class Minesweeper():
                         width=game_tile_width*self.int_current_game_columns,
                         height=game_tile_width*self.int_current_game_rows)
         self.game_canvas.place(x=game_border, y=game_border, anchor=NW)
-
         self.new_game()
 
     def menu_difficulty_select(self):
@@ -321,20 +320,34 @@ class Minesweeper():
             self.game_state = Game_state.DONE
             for i in range(self.int_current_game_columns):
                 for j in range(self.int_current_game_rows):
-                    if self.array_current_game_board[j][i].is_bomb:
-                        self.array_current_game_board[j][i].open_tile()
+                    if self.__is_bomb(j,i):
+                        self.__open_tile(j,i)
 
     def check_victory(self):
         for i in range(self.int_current_game_columns):
             for j in range(self.int_current_game_rows):
-
-                is_hidden = self.array_current_game_board[j][i].get_hidden()
-                is_bomb = self.array_current_game_board[j][i].get_bomb()
+                is_hidden = self.__is_hidden(j,i)
+                is_bomb = self.__is_bomb(j,i)
                 if is_hidden and not is_bomb : return
 
         self.game_state = Game_state.DONE
         self.open_remaining_tiles()
         self.check_highscores()
+
+    def __open_tile(self, i, j):
+        self.array_current_game_board[i][j].open_tile()
+    
+    def __is_hidden(self, i, j):
+        return self.array_current_game_board[i][j].get_hidden()
+
+    def __is_bomb(self, i, j):
+        return self.array_current_game_board[i][j].get_bomb()
+    
+    def __is_flag(self, i, j):
+        return self.array_current_game_board[i][j].get_flag()
+
+    def __force_flag(self, i, j):
+        self.array_current_game_board[i][j].force_flag()
 
     def open_tile_function(self, tile):
         tile.open_tile()
@@ -345,10 +358,10 @@ class Minesweeper():
     def open_remaining_tiles(self):
         for i in range(self.int_current_game_columns):
             for j in range(self.int_current_game_rows):
-                if not self.array_current_game_board[j][i].get_bomb():
-                    self.array_current_game_board[j][i].open_tile()
+                if not self.__is_bomb(j,i):
+                    self.__open_tile(j,i)
                 else:
-                    self.array_current_game_board[j][i].force_flag()
+                    self.__force_flag(j,i)
 
     def new_game(self):
         self.game_state = Game_state.START
@@ -365,7 +378,7 @@ class Minesweeper():
         for k in range(tile.get_row()-1, tile.get_row()+2):
             for l in range(tile.get_col()-1, tile.get_col()+2): 
                 try:
-                    if self.array_current_game_board[k][l].get_flag() and k >= 0 and l >= 0:
+                    if self.__is_flag(k,l) and k >= 0 and l >= 0:
                         number_of_flags += 1
                 except: 
                     pass
@@ -375,7 +388,7 @@ class Minesweeper():
         used_flags = 0
         for i in range(self.int_current_game_columns):
             for j in range(self.int_current_game_rows):
-                if self.array_current_game_board[j][i].get_flag():
+                if self.__is_flag(j,i):
                     used_flags += 1
         self.canvas.itemconfig(self.display_flag_marker, text=str(used_flags))
 
@@ -384,7 +397,7 @@ class Minesweeper():
             for k in range(tile.get_row()-1, tile.get_row()+2):
                 for l in range(tile.get_col()-1, tile.get_col()+2): 
                     try:
-                        if self.array_current_game_board[k][l].is_hidden and k >= 0 and l >= 0 and not self.array_current_game_board[k][l].get_flag():
+                        if self.__is_hidden(k,l) and k >= 0 and l >= 0 and not self.__is_flag(k,l):
                             self.open_tile_function(self.array_current_game_board[k][l])
                     except: 
                         1
@@ -452,7 +465,7 @@ class Minesweeper():
                     for k in range(tile.get_row()-1, tile.get_row()+2):
                         for l in range(tile.get_col()-1, tile.get_col()+2): 
                             try:
-                                if self.array_current_game_board[k][l].get_bomb() and k >= 0 and l >= 0:
+                                if self.__is_bomb(k,l) and k >= 0 and l >= 0:
                                     tile_bomb_number += 1
                             except: 
                                 tile_bomb_number += 0
