@@ -94,6 +94,8 @@ class Minesweeper():
     def mainloop(self):
         self.window.mainloop()
 
+### Timer Functions
+
     def start_timer(self):
         threading.Timer(1.0, self.start_timer).start()
         if self.game_state == Game_state.GAME:
@@ -105,9 +107,12 @@ class Minesweeper():
     def reset_timer(self):
         self.int_current_game_time = 0
  
+
+### Highscore Functions
+
     def load_highscores(self):
         for i in range(len(self.text_save_file_names)):
-            highscores_file_name = (self.cwd + "/highscores/" 
+            highscores_file_name = (cwd + "/highscores/" 
                                     + self.text_save_file_names[i] + '.txt'
                                    )
             highscores_opened_file = open(highscores_file_name)
@@ -118,7 +123,7 @@ class Minesweeper():
             highscores_opened_file.close()
 
     def save_highscores(self):
-        highscores_file_name = (self.cwd + "/highscores/" 
+        highscores_file_name = (cwd + "/highscores/" 
                     + self.text_save_file_names[self.int_current_difficulty] 
                     + '.txt')
         highscores_opened_file = open(highscores_file_name, 'w')
@@ -151,7 +156,7 @@ class Minesweeper():
                     if len(temp_list) > self.int_number_saved_highscores: 
                         temp_list = temp_list[0:(self.int_number_saved_highscores-1)]     
                 
-                if save_score == True:
+                if save_score:
                     self.array_high_scores[self.int_current_difficulty] = temp_list
                     self.save_highscores()
                     break
@@ -177,6 +182,7 @@ class Minesweeper():
             self.sound_place_tile.play()
 
 ### Draw Game Functions
+
     def leave_startup(self, button_clicked):
         self.int_current_game_rows = self.int_number_game_rows[button_clicked]
         self.int_current_game_columns = self.int_number_game_columns[button_clicked]
@@ -256,7 +262,7 @@ class Minesweeper():
         if self.game_state == (Game_state.GAME or Game_state.START):
             work_tile = self.tile_action('tile', event)
 
-            if work_tile.get_hidden() == True:
+            if work_tile.get_hidden():
                work_tile.set_flag()
                self.count_flags()
             elif work_tile.is_hidden == False and work_tile.get_flag() == False:
@@ -270,12 +276,12 @@ class Minesweeper():
             return False
 
     def tile_action(self, function, event):
-        clicked_col = (event.x - game_offset) / game_tile_width
-        clicked_row = (event.y - game_offset) / game_tile_width
+        clicked_col = (event.x - game_border) / game_tile_width
+        clicked_row = (event.y - game_border) / game_tile_width
         clicked_col = int(clicked_col) if clicked_col > 0 else -1
         clicked_row = int(clicked_row) if clicked_row > 0 else -1
 
-        if self.is_tile(clicked_col, clicked_row) == True:
+        if self.is_tile(clicked_col, clicked_row):
             tile = self.array_current_game_board[clicked_row][clicked_col]
 
             if function == 'num':
@@ -293,7 +299,7 @@ class Minesweeper():
         if tile.get_bomb() == True and tile.get_flag() == False:
             for i in range(self.int_current_game_columns):
                 for j in range(self.int_current_game_rows):
-                    if self.array_current_game_board[j][i].is_bomb == True:
+                    if self.array_current_game_board[j][i].is_bomb:
                         self.array_current_game_board[j][i].open_tile()
 
     def check_victory(self):
@@ -344,7 +350,7 @@ class Minesweeper():
         used_flags = 0
         for i in range(self.int_current_game_columns):
             for j in range(self.int_current_game_rows):
-                if self.array_current_game_board[j][i].get_flag() == True:
+                if self.array_current_game_board[j][i].get_flag():
                     used_flags += 1
         self.canvas.itemconfig(self.display_flag_marker, text=str(used_flags))
 
@@ -393,15 +399,15 @@ class Minesweeper():
 
     def draw_board(self):
 
-        self.array_current_game_board = [[Tile(i, j, game_tile_width, None, None, game_offset, self.canvas) for j in range(self.int_current_game_columns)] for i in range(self.int_current_game_rows)]
+        self.array_current_game_board = [[Tile(i, j, game_tile_width, None, None, game_border, self.canvas) for j in range(self.int_current_game_columns)] for i in range(self.int_current_game_rows)]
         
-        win_width = self.int_current_game_columns * game_tile_width + 2*game_offset
-        win_height = self.int_current_game_rows * game_tile_width + 2*game_offset
+        win_width = self.int_current_game_columns * game_tile_width + 2*game_border
+        win_height = self.int_current_game_rows * game_tile_width + 2*game_border
 
         self.canvas.config(width=win_width,height=win_height)
-        self.new_game_button = Button(win_width/2-game_offset, 10, 2*game_offset , 30, 'New Game', custom_colors[1], self.canvas)
-        self.display_flag_marker = self.canvas.create_text(game_tile_width*(self.int_current_game_columns-1/2) + game_offset, game_offset/2, fill='white', font='arial 20', text='0')
-        self.display_time_marker = self.canvas.create_text(game_tile_width/2 + game_offset, game_offset/2, fill='white', font='arial 20', text='0')
+        self.new_game_button = Button(win_width/2-game_border, 10, 2*game_border , 30, 'New Game', custom_colors[1], self.canvas)
+        self.display_flag_marker = self.canvas.create_text(game_tile_width*(self.int_current_game_columns-1/2) + game_border, game_border/2, fill='white', font='arial 20', text='0')
+        self.display_time_marker = self.canvas.create_text(game_tile_width/2 + game_border, game_border/2, fill='white', font='arial 20', text='0')
 
         # Set bombs
         tile_indexes = range(self.int_current_game_rows*self.int_current_game_columns)
