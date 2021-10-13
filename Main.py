@@ -7,17 +7,26 @@ import random
 from Button import Button
 from Tile import Tile
 
-# Design Parameters
-game_screen_width = 1300
-game_offset = 50
-game_tile_width = 40
+### Game Parameters
 
 # Number Colors
 number_colors = ['#FFFFFF', '#0000FF', '#007B00', '#FF0000', '#00007B', 
                 '#7B0000', '#007B7B', '#7B7B7B', '#000000']
-
 # Background Gray, Button Yellow, Hidden Tile Gray, Visible Tile Gray, Accent Orange
 custom_colors = ['#565554', '#f6f193', '#7c7a77', '#cfd0d2', '#fbd083'] 
+
+# Start-up Screen
+startup_width = 800
+startup_height = 600
+startup_color = custom_colors[0]
+startup_name = 'The Electric Boogaloo - Minesweeper 2'
+startup_button_names = ['New Game', 'Stats', 'Settings', 'Credits', 'Quit']
+startup_difficulty_names = ['Easy', 'Medium', 'Hard', 'Back']
+
+game_border = 50
+game_tile_width = 40
+
+cwd = os.getcwd()
 
 class Minesweeper():
     
@@ -25,12 +34,13 @@ class Minesweeper():
 
         # Screen Settings
         self.window = Tk()
-        self.window.title('The Electric Boogaloo - Minesweeper 2')
+        self.window.title(startup_name)
         self.canvas = Canvas(self.window, 
-                             width = game_screen_width/2, 
-                             height = game_screen_width/3, 
-                             bg=custom_colors[0]
+                             width = startup_width, 
+                             height = startup_height, 
+                             bg=startup_color
                             )
+        self.window.resizable(False, False)
         self.canvas.pack()
 
         self.window.bind('<Button-1>', self.left_click)
