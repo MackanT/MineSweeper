@@ -1,5 +1,6 @@
 from tkinter import *
 from array import *
+from enum import Enum
 import simpleaudio as sa
 import os
 import threading
@@ -29,6 +30,12 @@ game_tile_width = 40
 
 cwd = os.getcwd()
 
+class Game_state(Enum):
+    MENU = 0
+    START = 1
+    GAME = 2
+    LOSS = 3
+
 class Minesweeper():
     
     def __init__(self):
@@ -54,9 +61,7 @@ class Minesweeper():
         self.start_up_splash = self.get_image('startup')
 
         # Global Game Settings
-        self.boolean_game_active = False
-        self.boolean_startup = True
-        self.boolean_first_click = True
+        self.game_state = Game_state.MENU
 
         # Highscores
         self.text_save_file_names = ['easy', 'medium', 'hard']
@@ -93,7 +98,7 @@ class Minesweeper():
 
     def start_timer(self):
         threading.Timer(1.0, self.start_timer).start()
-        if self.boolean_game_active == True:
+        if self.game_state == Game_state.GAME:
             self.int_current_game_time += 1
             self.canvas.itemconfig(self.display_time_marker, 
                                    text=str(self.int_current_game_time)
@@ -179,26 +184,27 @@ class Minesweeper():
         self.int_current_game_columns = self.int_number_game_columns[button_clicked]
         self.int_current_game_mines = self.int_number_game_mines[button_clicked]
         self.int_current_difficulty = button_clicked
-        self.boolean_startup = False
+        self.game_state = Game_state.START
         self.new_game()
     
     def left_click(self, event): 
+
         # Use buttons on startup screen
-        if self.boolean_startup == True:
+        if self.game_state == Game_state.MENU:
+
             button_clicked = self.startup_button_clicked(event.x, event.y)
             self.window.destroy() if button_clicked == 3 else self.leave_startup(button_clicked)
         else:
             if self.new_game_button.point_in_box(event.x, event.y) == True:
                 self.new_game()
             else: 
-                if self.boolean_first_click == True:
+                if self.game_state == Game_state.START:
                     # Restart game until OK start - unoptimal, but works
                     while self.tile_action('num', event) != 0 or self.tile_action('bomb', event) == True:
                         self.new_game()
-                    self.boolean_first_click = False
-                    self.boolean_game_active = True
+                    self.game_state = Game_state.GAME
                     self.tile_action('open', event)
-                elif self.boolean_game_active == True:
+                elif self.game_state == Game_state.GAME:
                     self.tile_action('open', event)
 
     def startup_button_clicked(self, x, y):
@@ -210,12 +216,12 @@ class Minesweeper():
                 position_iterator = position_iterator + 1
 
     def right_click(self, event):
-        if self.boolean_game_active == True or self.boolean_first_click == True:
+        if self.game_state == (Game_state.GAME or Game_state.START):
            self.tile_action('flag', event)
            self.count_flags()
     
     def middle_click(self, event):
-        if self.boolean_game_active == True or self.boolean_first_click == True:
+        if self.game_state == (Game_state.GAME or Game_state.START):
             work_tile = self.tile_action('tile', event)
 
             if work_tile.get_hidden() == True:
@@ -257,7 +263,6 @@ class Minesweeper():
                 for j in range(self.int_current_game_rows):
                     if self.array_current_game_board[j][i].is_bomb == True:
                         self.array_current_game_board[j][i].open_tile()
-            self.boolean_game_active = False
 
     def check_victory(self):
         for i in range(self.int_current_game_columns):
@@ -265,7 +270,6 @@ class Minesweeper():
                 if self.array_current_game_board[j][i].get_hidden() == True and self.array_current_game_board[j][i].get_bomb() == False:
                     return
         self.open_remaining_tiles()
-        self.boolean_game_active = False
         self.check_highscores()
 
     def open_tile_function(self, tile):
@@ -283,9 +287,7 @@ class Minesweeper():
                     self.array_current_game_board[j][i].force_flag()
 
     def new_game(self):
-        self.boolean_first_click = True
-        self.boolean_game_active = False
-        self.numberOfClicks = 0
+        self.game_state = Game_state.START
         self.reset_timer()
         self.canvas.delete("all")
         self.draw_board()
