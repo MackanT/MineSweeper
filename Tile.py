@@ -2,22 +2,21 @@ from tkinter import *
 
 class Tile:
 
-    def __init__(self, row, col, width, is_bomb, num, game_offset, canvas):
+    def __init__(self, row, col, width, canvas):
         self.canvas = canvas
         self.row = row
         self.col = col
         self.width = width
-        self.game_offset = game_offset
         self.colors = ['#7c7a77', '#cfd0d2', '#fbd083', '#ed2939']
         self.color = None
 
         self.is_hidden = True # Hidden / Opened
         self.is_flagged = False
         self.is_bomb = False
-        self.num = num
+        self.num = None
         
         self.tile_area = canvas.create_rectangle(self.get_x(0), self.get_y(0),self.get_x(1), self.get_y(1), fill=self.colors[0])
-        self.text_area = canvas.create_text(self.game_offset + self.width/2 + self.col * self.width,self.game_offset + self.width/2 + self.row * self.width, font="arial 20", text="")
+        self.text_area = canvas.create_text(self.width/2 + self.col * self.width, self.width/2 + self.row * self.width, font="arial 20", text="")
 
         # Idea for flag, not nice.
         #self.flagBase = canvas.create_rectangle(self.get_x(0) + width/3, self.get_y(1) - width/10, self.get_x(1) - width/3, self.get_y(1) - 2*width/10, fill="black")
@@ -25,10 +24,10 @@ class Tile:
         #self.flagCloth = canvas.create_polygon([self.get_x(1) - width/2, self.get_y(1) - 2*width/3, self.get_x(1) - width/4, self.get_y(1) - width/2, self.get_x(1) - width/2, self.get_y(1) - width/3], fill='red')
 
     def get_x(self, col_number):
-        return (self.col + col_number)*self.width + self.game_offset
+        return (self.col + col_number)*self.width
     
     def get_y(self, row_number): 
-        return (self.row + row_number)*self.width + self.game_offset
+        return (self.row + row_number)*self.width
 
     def update_tile(self, info):
         if info == 'Flag':

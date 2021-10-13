@@ -48,13 +48,22 @@ class Minesweeper():
                              height = startup_height, 
                              bg=startup_color
                             )
+        self.game_canvas = Canvas(self.window, 
+                             width = 0, 
+                             height = 0, 
+                             bg=startup_color,
+                            )
         self.window.resizable(False, False)
         self.canvas.pack()
+        
 
-        self.window.bind('<Button-1>', self.left_click)
-        self.window.bind('<Button-2>', self.middle_click)
-        self.window.bind('<Button-3>', self.right_click)
-        self.window.bind('<space>', self.middle_click)
+        # Input listeners
+        #self.window.bind('<Motion>', self.moved_mouse)
+        self.window.bind('<Button-1>', self.window_click)
+        self.game_canvas.bind('<Button-1>', self.left_click)
+        self.game_canvas.bind('<Button-2>', self.middle_click)
+        self.window.bind('<space>', self.space_click)
+        self.game_canvas.bind('<Button-3>', self.right_click)
 
         # Graphical Loading
         self.font_text = ("GOST Common", 12, "bold")
@@ -189,6 +198,12 @@ class Minesweeper():
         self.int_current_game_mines = self.int_number_game_mines[button_clicked]
         self.int_current_difficulty = button_clicked
         self.game_state = Game_state.START
+
+        self.game_canvas.configure(state='normal',
+                        width=game_tile_width*self.int_current_game_columns,
+                        height=game_tile_width*self.int_current_game_rows)
+        self.game_canvas.place(x=game_border, y=game_border, anchor=NW)
+
         self.new_game()
 
     def menu_difficulty_select(self):
@@ -207,7 +222,7 @@ class Minesweeper():
         """ Fired by mouse movement, calls appropriate function depending on game state """
         if (self.state_game == 0): self.home_button_sound(event)
 
-    def left_click(self, event): 
+    def window_click(self, event):
 
         # Use buttons on startup screen
         if self.game_state == Game_state.MENU:
@@ -258,45 +273,51 @@ class Minesweeper():
            self.tile_action('flag', event)
            self.count_flags()
     
-    def middle_click(self, event):
+    def space_click(self, event):
+        self.middle_click(event, space=True)
+
+    def middle_click(self, event, space=False):
         if self.game_state == (Game_state.GAME or Game_state.START):
-            work_tile = self.tile_action('tile', event)
+            work_tile = self.tile_action('tile', event, space)
+            if work_tile == None: return
 
             if work_tile.get_hidden():
                work_tile.set_flag()
                self.count_flags()
-            elif work_tile.is_hidden == False and work_tile.get_flag() == False:
+            elif not work_tile.is_hidden and not work_tile.get_flag():
                 if self.count_nearby_flags(work_tile) == work_tile.get_tile_number():
                     self.open_square(work_tile)
-    
-    def is_tile(self, x, y):
-        if x >= 0 and x < self.int_current_game_columns and y >= 0 and y < self.int_current_game_rows:
-            return True
-        else:
-            return False
 
-    def tile_action(self, function, event):
-        clicked_col = (event.x - game_border) / game_tile_width
-        clicked_row = (event.y - game_border) / game_tile_width
-        clicked_col = int(clicked_col) if clicked_col > 0 else -1
-        clicked_row = int(clicked_row) if clicked_row > 0 else -1
+    def tile_action(self, function, event, space=False):
 
-        if self.is_tile(clicked_col, clicked_row):
-            tile = self.array_current_game_board[clicked_row][clicked_col]
+        clicked_col = event.x  / game_tile_width
+        clicked_row = event.y  / game_tile_width
 
-            if function == 'num':
-                return tile.get_tile_number()
-            elif function == 'bomb':
-                return tile.get_bomb()
-            elif function == 'flag':
-                tile.set_flag()
-            elif function == 'open':
-                self.open_tile_function(tile)
-            elif function == 'tile':
-                return tile
+        if space:
+            clicked_col = (event.x-game_border) / game_tile_width
+            clicked_row = (event.y-game_border) / game_tile_width
+            if not 0 < clicked_col < self.int_current_game_columns: return
+            if not 0 < clicked_row < self.int_current_game_rows: return
+
+        clicked_row = int(clicked_row)
+        clicked_col = int(clicked_col)
+
+        tile = self.array_current_game_board[clicked_row][clicked_col]
+
+        if function == 'num':
+            return tile.get_tile_number()
+        elif function == 'bomb':
+            return tile.get_bomb()
+        elif function == 'flag':
+            tile.set_flag()
+        elif function == 'open':
+            self.open_tile_function(tile)
+        elif function == 'tile':
+            return tile
 
     def check_loss(self, tile):
-        if tile.get_bomb() == True and tile.get_flag() == False:
+        if tile.get_bomb() and not tile.get_flag():
+            self.game_state = Game_state.START
             for i in range(self.int_current_game_columns):
                 for j in range(self.int_current_game_rows):
                     if self.array_current_game_board[j][i].is_bomb:
