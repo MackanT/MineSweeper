@@ -249,13 +249,12 @@ class Minesweeper():
     def left_click(self, event): 
 
         if self.game_state == Game_state.START:
-            # Restart game until OK start - unoptimal, but works
-            while self.tile_action('num', event) != 0 or self.tile_action('bomb', event):
-                self.new_game()
+            x, y = self.get_tile(event)
+            no_bomb_on_int = x*self.int_current_game_columns + y
+            self.add_bombs(no_bomb_on_int)
             self.game_state = Game_state.GAME
-            self.tile_action('open', event)
-        elif self.game_state == Game_state.GAME:
-            self.tile_action('open', event)
+            
+        self.tile_action('open', event)
 
     def startup_button_clicked(self, x, y):
         for i, item in enumerate(self.array_startup_buttons): 
@@ -282,22 +281,23 @@ class Minesweeper():
                 if self.count_nearby_flags(work_tile) == work_tile.get_tile_number():
                     self.open_square(work_tile)
 
+    def get_tile(self, event, space=False):
+
+        delta = game_border if space else 0
+            
+        col = (event.x-delta) / game_tile_width
+        row = (event.y-delta) / game_tile_width
+        if not 0 < col <= self.int_current_game_columns: return -1, -1
+        if not 0 < row <= self.int_current_game_rows: return -1, -1
+
+        return int(row), int(col)
+
     def tile_action(self, function, event, space=False):
-
-        clicked_col = event.x  / game_tile_width
-        clicked_row = event.y  / game_tile_width
-
-        if space:
-            clicked_col = (event.x-game_border) / game_tile_width
-            clicked_row = (event.y-game_border) / game_tile_width
-            if not 0 < clicked_col < self.int_current_game_columns: return
-            if not 0 < clicked_row < self.int_current_game_rows: return
-
-        clicked_row = int(clicked_row)
-        clicked_col = int(clicked_col)
-
-        tile = self.array_current_game_board[clicked_row][clicked_col]
-
+        
+        row, col = self.get_tile(event, space)
+        if (row or col) == -1: return
+        tile = self.array_current_game_board[row][col]
+        
         if function == 'num':
             return tile.get_tile_number()
         elif function == 'bomb':
@@ -437,15 +437,28 @@ class Minesweeper():
         win_height = self.int_current_game_rows * game_tile_width + 2*game_border
 
         self.canvas.config(width=win_width,height=win_height)
-        self.new_game_button = Button(win_width/2-game_border, 10, 2*game_border , 30, 'New Game', custom_colors[1], self.canvas)
-        self.display_flag_marker = self.canvas.create_text(game_tile_width*(self.int_current_game_columns-1/2) + game_border, game_border/2, fill='white', font='arial 20', text='0')
-        self.display_time_marker = self.canvas.create_text(game_tile_width/2 + game_border, game_border/2, fill='white', font='arial 20', text='0')
+        self.new_game_button = Button(win_width/2-game_border, 10, 
+                                      2*game_border , 30, 'New Game', 
+                                      custom_colors[1], self.canvas)
+        
+        flag_x = game_tile_width*(self.int_current_game_columns-1/2) + game_border
+        flag_y = game_border/2
+        time_x = game_tile_width/2 + game_border
+        time_y = game_border/2
+
+        self.display_flag_marker = self.canvas.create_text(flag_x, flag_y, fill='white', font='arial 20', text='0')
+        self.display_time_marker = self.canvas.create_text(time_x, time_y, fill='white', font='arial 20', text='0')
+
+    def add_bombs(self, no_bomb):
 
         # Set bombs
-        tile_indexes = range(self.int_current_game_rows*self.int_current_game_columns)
+        max_tiles = self.int_current_game_rows*self.int_current_game_columns
+        tile_indexes = [i for i in range(max_tiles) if i != no_bomb]
         bomb_indexes = random.sample(tile_indexes, self.int_current_game_mines)
         for index in bomb_indexes:
-            self.array_current_game_board[int(index/self.int_current_game_columns)][index%self.int_current_game_columns].set_bomb()
+            row = int(index/self.int_current_game_columns)
+            col = index%self.int_current_game_columns
+            self.array_current_game_board[row][col].set_bomb()
 
         self.calculate_tile_numbers()
 
