@@ -2,13 +2,14 @@ from tkinter import *
 
 class Tile:
 
-    def __init__(self, row, col, width, canvas):
+    def __init__(self, row, col, width, font, canvas):
         self.canvas = canvas
         self.row = row
         self.col = col
         self.width = width
         self.colors = ['#7c7a77', '#cfd0d2', '#fbd083', '#ed2939']
         self.color = None
+        self.font = font
 
         self.is_hidden = True # Hidden / Opened
         self.is_flagged = False
@@ -16,7 +17,7 @@ class Tile:
         self.num = None
         
         self.tile_area = canvas.create_rectangle(self.get_x(0), self.get_y(0),self.get_x(1), self.get_y(1), fill=self.colors[0])
-        self.text_area = canvas.create_text(self.width/2 + self.col * self.width, self.width/2 + self.row * self.width, font="arial 20", text="")
+        self.text_area = canvas.create_text(self.width/2 + self.col * self.width, self.width/2 + self.row * self.width, font=self.font, text="")
 
         # Idea for flag, not nice.
         #self.flagBase = canvas.create_rectangle(self.get_x(0) + width/3, self.get_y(1) - width/10, self.get_x(1) - width/3, self.get_y(1) - 2*width/10, fill="black")

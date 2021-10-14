@@ -1,6 +1,7 @@
 from tkinter import *
 from array import *
 from enum import Enum
+from tkinter import font
 import simpleaudio as sa
 import os
 import threading
@@ -66,7 +67,8 @@ class Minesweeper():
         self.game_canvas.bind('<Button-3>', self.right_click)
 
         # Graphical Loading
-        self.font_text = ("GOST Common", 12, "bold")
+        self.font_text = ("GOST Common", 20, "bold")
+        self.font_small = ("GOST Common", 12, "bold")
         self.start_up_splash = self.get_image('startup')
 
         # Global Game Settings
@@ -425,21 +427,28 @@ class Minesweeper():
                         width=startup_width/2-game_border, 
                         height=0.7*button_height, 
                         text=name, 
-                        color=custom_colors[1], 
+                        color=custom_colors[1],
+                        font=self.font_text 
                     )
             )
 
     def draw_board(self):
 
-        self.array_current_game_board = [[Tile(i, j, game_tile_width, self.game_canvas) for j in range(self.int_current_game_columns)] for i in range(self.int_current_game_rows)]
+        self.array_current_game_board = [[Tile(i, j, game_tile_width, self.font_text, self.game_canvas) for j in range(self.int_current_game_columns)] for i in range(self.int_current_game_rows)]
         
         win_width = self.int_current_game_columns * game_tile_width + 2*game_border
         win_height = self.int_current_game_rows * game_tile_width + 2*game_border
 
         self.canvas.config(width=win_width,height=win_height)
-        self.new_game_button = Button(win_width/2-game_border, 10, 
-                                      2*game_border , 30, 'New Game', 
-                                      custom_colors[1], self.canvas)
+        self.new_game_button = Button(x_pos = win_width/2-game_border, 
+                                      y_pos = 10, 
+                                      width = 2*game_border, 
+                                      height = 30, 
+                                      text = 'New Game', 
+                                      font = self.font_small,
+                                      color = custom_colors[1], 
+                                      canvas = self.canvas
+                                      )
         
         flag_x = game_tile_width*(self.int_current_game_columns-1/2) + game_border
         flag_y = game_border/2
@@ -447,10 +456,10 @@ class Minesweeper():
         time_y = game_border/2
 
         self.display_flag_marker = self.canvas.create_text(flag_x, flag_y, 
-                                        fill='white', font='arial 20', 
+                                        fill='white', font=self.font_text, 
                                         text=str(self.int_current_game_mines))
         self.display_time_marker = self.canvas.create_text(time_x, time_y, 
-                                        fill='white', font='arial 20', 
+                                        fill='white', font=self.font_text, 
                                         text='0')
 
     def add_bombs(self, no_bomb):
