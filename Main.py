@@ -75,13 +75,7 @@ class Minesweeper():
         # Highscores
         self.text_save_file_names = ['easy', 'medium', 'hard']
         self.int_number_saved_highscores = 10
-        self.array_easy_scores = []
-        self.array_medium_scores = []
-        self.array_hard_scores = []
-        self.array_high_scores = [self.array_easy_scores, 
-                                  self.array_medium_scores, 
-                                  self.array_hard_scores
-                                 ]
+        self.array_high_scores = [ [], [], [] ]
 
         # Fixed Game Settings
         self.int_number_game_rows    = [9, 16, 16]
