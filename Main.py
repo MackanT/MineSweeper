@@ -384,7 +384,7 @@ class Minesweeper():
             for j in range(self.int_current_game_rows):
                 if self.__is_flag(j,i):
                     used_flags += 1
-        self.canvas.itemconfig(self.display_flag_marker, text=str(used_flags))
+        self.canvas.itemconfig(self.display_flag_marker, text=str(self.int_current_game_mines-used_flags))
 
     def open_square(self, tile):
         if not tile.get_bomb():
@@ -446,8 +446,12 @@ class Minesweeper():
         time_x = game_tile_width/2 + game_border
         time_y = game_border/2
 
-        self.display_flag_marker = self.canvas.create_text(flag_x, flag_y, fill='white', font='arial 20', text='0')
-        self.display_time_marker = self.canvas.create_text(time_x, time_y, fill='white', font='arial 20', text='0')
+        self.display_flag_marker = self.canvas.create_text(flag_x, flag_y, 
+                                        fill='white', font='arial 20', 
+                                        text=str(self.int_current_game_mines))
+        self.display_time_marker = self.canvas.create_text(time_x, time_y, 
+                                        fill='white', font='arial 20', 
+                                        text='0')
 
     def add_bombs(self, no_bomb):
 
