@@ -44,15 +44,19 @@ class Minesweeper():
         # Screen Settings
         self.window = Tk()
         self.window.title(startup_name)
+        self.window.config(bg=startup_color)
         self.canvas = Canvas(self.window, 
                              width = startup_width, 
                              height = startup_height, 
-                             bg=startup_color
+                             bg=startup_color,
+                             borderwidth=0,
+                             highlightthickness=0
                             )
         self.game_canvas = Canvas(self.window, 
                              width = 0, 
                              height = 0, 
                              bg=startup_color,
+                             highlightthickness=1
                             )
         self.window.resizable(False, False)
         self.canvas.pack()
