@@ -64,7 +64,7 @@ class Minesweeper():
 
         # Input listeners
         self.canvas.bind('<Motion>', self.moved_mouse)
-        self.window.bind('<Button-1>', self.window_click)
+        self.canvas.bind('<Button-1>', self.canvas_click)
         self.game_canvas.bind('<Button-1>', self.left_click)
         self.game_canvas.bind('<Button-2>', self.middle_click)
         self.window.bind('<space>', self.space_click)
@@ -242,8 +242,7 @@ class Minesweeper():
                     # Mouse is outside of button
                     button.set_button_highlighted(False)
 
-    def window_click(self, event):
-
+    def canvas_click(self, event):
         # Use buttons on startup screen
         if self.game_state == Game_state.MENU:
 
@@ -269,7 +268,7 @@ class Minesweeper():
             elif button_clicked == startup_difficulty_names[3]:
                 self.draw_startup_buttons(case=0)
 
-        # New game button from within game
+        # New game button from within game 
         elif self.new_game_button.point_in_box(event.x, event.y):
             self.new_game()
 
@@ -377,6 +376,7 @@ class Minesweeper():
                     self.__force_flag(j,i)
 
     def new_game(self):
+        self.int_current_flags = 0
         self.game_state = Game_state.START
         self.reset_timer()
         self.canvas.delete("all")
@@ -398,6 +398,7 @@ class Minesweeper():
         return number_of_flags
 
     def __update_flags(self):
+        print(self.int_current_flags)
         n_flags = self.int_current_game_mines-self.int_current_flags
         self.canvas.itemconfig(self.display_flag_marker, text=str(n_flags))
 
@@ -455,7 +456,9 @@ class Minesweeper():
         win_width = self.int_current_game_columns * game_tile_width + 2*game_border
         win_height = self.int_current_game_rows * game_tile_width + 2*game_border
 
-        self.canvas.config(width=win_width,height=win_height)
+        self.canvas.config(width=win_width,height=game_border)
+        self.window.geometry('%dx%d'%(win_width, win_height))
+
         self.new_game_button = Button(x_pos = win_width/2-game_border, 
                                       y_pos = 10, 
                                       width = 2*game_border, 
