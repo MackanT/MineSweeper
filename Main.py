@@ -405,8 +405,8 @@ class Minesweeper():
         for i in range(self.int_current_game_columns):
             for j in range(self.int_current_game_rows):
                 tile = self.array_current_game_board[i][j]
-                is_bomb = self.__is_bomb(j,i)
-                if tile.get_state() == TileState.HIDDEN and is_bomb : return
+                not_bomb = not tile.get_bomb()
+                if tile.get_state() == TileState.HIDDEN and not_bomb : return
 
         print('win')
         self.game_state = Game_state.DONE
