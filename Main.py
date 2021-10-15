@@ -46,8 +46,8 @@ class Minesweeper():
         self.window.title(startup_name)
         self.window.config(bg=startup_color)
         self.canvas = Canvas(self.window, 
-                             width = startup_width, 
-                             height = startup_height, 
+                             width = 0, 
+                             height = 0, 
                              bg=startup_color,
                              borderwidth=0,
                              highlightthickness=0
@@ -55,7 +55,6 @@ class Minesweeper():
         self.game_canvas = Canvas(self.window, 
                              width = 0, 
                              height = 0, 
-                             bg=startup_color,
                              highlightthickness=1
                             )
         self.window.resizable(False, False)
@@ -78,9 +77,6 @@ class Minesweeper():
         # Sound
         self.sound_home_button = self.load_sound('home_screen')
 
-        # Global Game Settings
-        self.game_state = Game_state.MENU
-
         # Highscores
         self.text_save_file_names = ['easy', 'medium', 'hard']
         self.int_number_saved_highscores = 10
@@ -94,14 +90,15 @@ class Minesweeper():
         self.int_current_game_mines = self.int_current_flags = 0
         self.int_current_game_time = 0
 
-        self.int_current_difficulty = None
-        self.start_timer()
-
         self.array_startup_buttons = []
         self.array_current_game_board = []
 
+        self.int_current_difficulty = None
+
         self.draw_startup()
         self.load_highscores()
+
+        self.start_timer()
 
     def mainloop(self):
         self.window.mainloop()
@@ -181,6 +178,7 @@ class Minesweeper():
         file_name = cwd + '\\' + folder + '\\' + filename + '.png'
         return PhotoImage(file=file_name)
 
+
 ### Sound 
 
     def load_sound(self, file_name):
@@ -194,6 +192,7 @@ class Minesweeper():
             self.sound_home_button.play()
         elif file_name == 'place_tower':
             self.sound_place_tile.play()
+
 
 ### User Input
 
@@ -277,12 +276,19 @@ class Minesweeper():
 
             # New game button from within game 
             elif self.new_game_button.point_in_box(event.x, event.y):
-                # self.new_game()
-                self.draw_startup()
+                self.new_game()
+
 
 ### Draw Game
 
     def draw_startup(self):
+        
+        self.game_state = Game_state.MENU
+        self.canvas.delete('all')
+        self.game_canvas.place_forget()
+
+        self.canvas.config(width=startup_width,height=startup_height)
+        self.window.geometry('%dx%d'%(startup_width, startup_height))
 
         self.draw_startup_buttons(case=0)
         self.canvas.create_image(game_border,startup_height/2, anchor=W, 
@@ -348,7 +354,7 @@ class Minesweeper():
                     )
             )
 
-            
+
 ### Button Reseults
 
     def leave_startup(self, button_clicked):
