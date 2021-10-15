@@ -15,6 +15,7 @@ class Button:
         self.text = text
         self.color = color
         self.font = font
+        self.mouse_in_box = False
 
         self.create_button()
 
@@ -25,6 +26,15 @@ class Button:
     def delete_button(self):
         self.canvas.delete(self.button_area)
         self.canvas.delete(self.button_text)
+
+    def is_selected(self, state, disp=0):
+        
+        if state:
+            self.canvas.move(self.button_area, disp, 0)
+            self.canvas.move(self.button_text, disp, 0)
+        else:
+            self.canvas.move(self.button_area, -disp, 0)
+            self.canvas.move(self.button_text, -disp, 0)
 
     def get_x(self):
         return self.x_pos
@@ -41,10 +51,16 @@ class Button:
     def get_name(self):
         return self.text
 
+    def set_button_highlighted(self, state):
+        self.mouse_in_box = state
+
+    def get_button_highlighted(self):
+        return self.mouse_in_box
+
     def point_in_box(self, x, y):
 
         x_bool = (x >= self.x_pos) and (x <= self.x_pos + self.width)
         y_bool = (y >= self.y_pos) and (y <= self.y_pos + self.height)
 
-        if x_bool == True and y_bool == True:
-            return True
+        if x_bool and y_bool: return True
+        else: return False

@@ -8,7 +8,7 @@ import threading
 import numpy as np
 import random
 from Button import Button
-from Tile import Tile
+from Tile import Tile, TileState
 
 ### Game Parameters
 
@@ -59,7 +59,7 @@ class Minesweeper():
         
 
         # Input listeners
-        #self.window.bind('<Motion>', self.moved_mouse)
+        self.canvas.bind('<Motion>', self.moved_mouse)
         self.window.bind('<Button-1>', self.window_click)
         self.game_canvas.bind('<Button-1>', self.left_click)
         self.game_canvas.bind('<Button-2>', self.middle_click)
@@ -70,6 +70,9 @@ class Minesweeper():
         self.font_text = ("GOST Common", 20, "bold")
         self.font_small = ("GOST Common", 12, "bold")
         self.start_up_splash = self.get_image('startup')
+
+        # Sound
+        self.sound_home_button = self.load_sound('home_screen')
 
         # Global Game Settings
         self.game_state = Game_state.MENU
@@ -84,8 +87,8 @@ class Minesweeper():
         self.int_number_game_columns = [9, 16, 30]
         self.int_number_game_mines   = [10, 40, 99]
         self.int_current_game_rows = self.int_current_game_columns = 0 
-        self.int_current_game_mines = 0
-        self.int_current_game_time = self.int_current_flag_count = 0
+        self.int_current_game_mines = self.int_current_flags = 0
+        self.int_current_game_time = 0
 
         self.int_current_difficulty = None
         self.start_timer()
@@ -141,7 +144,6 @@ class Minesweeper():
 
     def check_highscores(self):
 
-        print('checking highscores')
         current_game_time = self.int_current_game_time
         temp_list = self.array_high_scores[self.int_current_difficulty]
         save_score = False
@@ -176,7 +178,7 @@ class Minesweeper():
 
     def load_sound(self, file_name):
         """ loads specified sound file as wave object """
-        return sa.WaveObject.from_wave_file(self.cwd 
+        return sa.WaveObject.from_wave_file(cwd 
                         + '\\sound\\' + file_name + '.wav')
 
     def play_sound(self, file_name):
