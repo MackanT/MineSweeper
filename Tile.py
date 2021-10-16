@@ -91,22 +91,13 @@ class Tile:
             self.state = TileState.FLAGGED
             self.update_tile()
             return 1
-        else:
+        elif self.state == TileState.FLAGGED:
             self.state = TileState.HIDDEN
             self.update_tile()
             return -1
-
-        # if self.is_hidden and not self.is_flagged:
-        #     self.is_hidden = False
-        #     self.update_tile('Visible')
+        else:
+            return 0
             
-        #     if not self.is_bomb and self.num != 0:
-        #         self.canvas.itemconfig(self.text_area, 
-        #                                text=str(self.num), 
-        #                                fill=self.color)
-        #     elif self.is_bomb:
-        #         self.set_color(3)
-
     def get_tile_number(self):
         return self.num
 

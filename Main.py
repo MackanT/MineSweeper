@@ -402,9 +402,12 @@ class Minesweeper():
                         self.__open_tile(j,i)
 
     def check_victory(self):
+
+        if self.int_current_flags > self.int_current_game_mines: return
+
         for i in range(self.int_current_game_columns):
             for j in range(self.int_current_game_rows):
-                tile = self.array_current_game_board[i][j]
+                tile = self.array_current_game_board[j][i]
                 not_bomb = not tile.get_bomb()
                 if tile.get_state() == TileState.HIDDEN and not_bomb : return
 
@@ -513,7 +516,7 @@ class Minesweeper():
                     
                     ok_k = (0 <= k < self.int_current_game_rows)
                     ok_l = (0 <= l < self.int_current_game_columns)
-
+                    
                     if ok_k and ok_l:
                         new_tile = self.array_current_game_board[k][l]
                         if new_tile.get_state() == TileState.HIDDEN:
