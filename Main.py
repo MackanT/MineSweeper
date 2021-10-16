@@ -25,6 +25,7 @@ startup_color = custom_colors[0]
 startup_name = 'The Electric Boogaloo - Minesweeper 2'
 startup_button_names = ['New Game', 'Stats', 'Settings', 'Credits', 'Quit']
 startup_difficulty_names = ['Easy', 'Medium', 'Hard', 'Back']
+game_button_names = ['X', 'New Game']
 
 game_border = 50
 game_tile_width = 40
@@ -91,6 +92,7 @@ class Minesweeper():
         self.int_current_game_time = 0
 
         self.array_startup_buttons = []
+        self.array_game_buttons = [None] * len(game_button_names)
         self.array_current_game_board = []
 
         self.int_current_difficulty = None
@@ -275,8 +277,16 @@ class Minesweeper():
                     self.draw_startup_buttons(case=0)
 
             # New game button from within game 
-            elif self.new_game_button.point_in_box(event.x, event.y):
-                self.new_game()
+            else:
+                
+                button_clicked = self.find_clicked_button(event.x, event.y, self.array_game_buttons)
+                if button_clicked == None: return
+                
+                if button_clicked == game_button_names[0]:
+                    self.draw_startup()
+                elif button_clicked == game_button_names[1]:
+                    self.new_game()
+                
 
 
 ### Draw Game
@@ -304,11 +314,21 @@ class Minesweeper():
         self.canvas.config(width=win_width,height=game_border)
         self.window.geometry('%dx%d'%(win_width, win_height))
 
-        self.new_game_button = Button(x_pos = win_width/2-game_border, 
+        self.array_game_buttons[0] = Button(x_pos = game_border/2, 
+                                      y_pos = 10, 
+                                      width = game_border, 
+                                      height = 30, 
+                                      text = game_button_names[0], 
+                                      font = self.font_small,
+                                      color = custom_colors[1], 
+                                      canvas = self.canvas
+                                      )
+
+        self.array_game_buttons[1] = Button(x_pos = win_width/2-game_border, 
                                       y_pos = 10, 
                                       width = 2*game_border, 
                                       height = 30, 
-                                      text = 'New Game', 
+                                      text = game_button_names[1], 
                                       font = self.font_small,
                                       color = custom_colors[1], 
                                       canvas = self.canvas
@@ -316,7 +336,7 @@ class Minesweeper():
         
         flag_x = game_tile_width*(self.int_current_game_columns-1/2) + game_border
         flag_y = game_border/2
-        time_x = game_tile_width/2 + game_border
+        time_x = game_tile_width/2 + 2*game_border
         time_y = game_border/2
 
         self.display_flag_marker = self.canvas.create_text(flag_x, flag_y, 
