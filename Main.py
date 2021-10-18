@@ -2,6 +2,7 @@ from tkinter import *
 from array import *
 from enum import Enum
 from tkinter import font
+from PIL import Image, ImageTk
 import simpleaudio as sa
 import os
 import threading
@@ -58,6 +59,7 @@ class Minesweeper():
                              height = 0, 
                              highlightthickness=1
                             )
+        self.test_canvas = []
         self.window.resizable(False, False)
         self.canvas.pack()
         
@@ -389,6 +391,34 @@ class Minesweeper():
                     )
             )
 
+    def draw_win_screen(self):
+
+        dx = int(self.game_canvas.winfo_width()/2)
+        dy = int(self.game_canvas.winfo_height()/2)
+
+        self.draw_rectangle(dx - 3*game_border, dy - game_border, dx + 3*game_border, dy + game_border, fill='#fbd083', alpha=.6)
+        self.game_canvas.create_text(dx, dy-5, anchor=S, text='Congratulations!', font=self.font_text)
+        self.game_canvas.create_text(dx, dy+5, anchor=N, text='You completed the \n game in {0} seconds!'.format(self.int_current_game_time), font=self.font_small)
+    
+    def draw_lose_screen(self):
+
+        dx = int(self.game_canvas.winfo_width()/2)
+        dy = int(self.game_canvas.winfo_height()/2)
+
+        self.draw_rectangle(dx - 3*game_border, dy - game_border, dx + 3*game_border, dy + game_border, fill='#ed2939', alpha=.8)
+        self.game_canvas.create_text(dx, dy-5, anchor=S, text='Failure!', font=self.font_text)
+        self.game_canvas.create_text(dx, dy+5, anchor=N, text='You failed in securing the mines!', font=self.font_small)
+
+    def draw_rectangle(self, x1, y1, x2, y2, **kwargs):
+        if 'alpha' in kwargs:
+            alpha = int(kwargs.pop('alpha') * 255)
+            fill = kwargs.pop('fill')
+            fill = (int(fill[1:3],16),int(fill[3:5],16),int(fill[5:7],16),alpha)
+            image = Image.new('RGBA', (x2-x1, y2-y1), fill)
+            self.test_canvas.append(ImageTk.PhotoImage(image))
+            self.game_canvas.create_image(x1, y1, image=self.test_canvas[-1], anchor='nw')
+        self.game_canvas.create_rectangle(x1, y1, x2, y2, **kwargs)
+        
 
 ### Button Reseults
 
@@ -431,6 +461,7 @@ class Minesweeper():
         if tile.get_bomb() and tile.get_state() == TileState.VISIBLE:
             self.game_state = Game_state.DONE
             self.play_sound('explosion')
+            self.draw_lose_screen()
             for i in range(self.int_current_game_columns):
                 for j in range(self.int_current_game_rows):
                     if self.__is_bomb(j,i):
@@ -450,6 +481,7 @@ class Minesweeper():
         self.play_sound('win')
         self.open_remaining_tiles()
         self.check_highscores()
+        self.draw_win_screen()
     
     def add_bombs(self, no_bomb):
 
