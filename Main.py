@@ -77,6 +77,10 @@ class Minesweeper():
 
         # Sound
         self.sound_home_button = self.load_sound('home_screen')
+        self.sound_explosion = self.load_sound('explosion')
+        self.sound_flag = self.load_sound('flag')
+        self.sound_win = self.load_sound('win')
+        self.sound_bcg = self.load_sound('MineSweeper')
 
         # Highscores
         self.text_save_file_names = ['easy', 'medium', 'hard']
@@ -115,6 +119,8 @@ class Minesweeper():
             self.canvas.itemconfig(self.display_time_marker, 
                                    text=str(self.int_current_game_time)
                                    )
+        if not self.song.is_playing():
+            self.play_sound('main')
 
     def reset_timer(self):
         self.int_current_game_time = 0
@@ -192,8 +198,15 @@ class Minesweeper():
         """ Plays specified sound file """ 
         if file_name == 'home_button':
             self.sound_home_button.play()
-        elif file_name == 'place_tower':
-            self.sound_place_tile.play()
+        elif file_name == 'main':
+            self.song = self.sound_bcg.play()
+        elif file_name == 'explosion':
+            self.sound_explosion.play()
+        elif file_name == 'flag':
+            #self.sound_flag.play()
+            1
+        elif file_name == 'win':
+            self.sound_win.play()
 
 
 ### User Input
@@ -296,6 +309,8 @@ class Minesweeper():
         self.game_state = Game_state.MENU
         self.canvas.delete('all')
         self.game_canvas.place_forget()
+
+        self.play_sound('main')
 
         self.canvas.config(width=startup_width,height=startup_height)
         self.window.geometry('%dx%d'%(startup_width, startup_height))
@@ -415,7 +430,7 @@ class Minesweeper():
     def check_loss(self, tile):
         if tile.get_bomb() and tile.get_state() == TileState.VISIBLE:
             self.game_state = Game_state.DONE
-            print('lose')
+            self.play_sound('explosion')
             for i in range(self.int_current_game_columns):
                 for j in range(self.int_current_game_rows):
                     if self.__is_bomb(j,i):
@@ -431,8 +446,8 @@ class Minesweeper():
                 not_bomb = not tile.get_bomb()
                 if tile.get_state() == TileState.HIDDEN and not_bomb : return
 
-        print('win')
         self.game_state = Game_state.DONE
+        self.play_sound('win')
         self.open_remaining_tiles()
         self.check_highscores()
     
@@ -510,6 +525,7 @@ class Minesweeper():
         if function == 'flag':
             self.int_current_flags += tile.toggle_flag()
             self.__update_flags()
+            self.play_sound('flag')
         elif function == 'open':
             self.open_tile_function(tile)
         elif function == 'tile':
