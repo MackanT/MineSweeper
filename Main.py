@@ -88,8 +88,8 @@ class Minesweeper():
         # Highscores
         self.text_save_file_names = ['easy', 'medium', 'hard']
         self.int_number_saved_highscores = 10
-        self.array_high_scores = [ [], [], [] ]
-        self.array_high_scores_names = [ [], [], [] ]
+        self.load_highscores()
+        self.check_highscore_file()
 
         # Fixed Game Settings
         self.int_number_game_rows    = [9, 16, 16]
@@ -107,7 +107,6 @@ class Minesweeper():
         
         self.play_sound('main')
         self.draw_startup()
-        self.load_highscores()
 
         self.start_timer()
 
@@ -133,18 +132,27 @@ class Minesweeper():
 
 ### Highscore Functions
 
-    def load_highscores(self):
-        for i in range(len(self.text_save_file_names)):
-            highscores_file_name = (cwd + "/highscores/" 
-                                    + self.text_save_file_names[i] + '.txt'
-                                   )
-            highscores_opened_file = open(highscores_file_name)
+    def check_highscore_file(self):
+        file = cwd + "/highscores/"
+        if not os.path.exists(file): os.mkdir(file)
 
-            for line in highscores_opened_file:
-                comma_position = line.find(',')
-                self.array_high_scores[i].append(line[0:comma_position])
-                self.array_high_scores_names[i].append(line[comma_position+2:])
-            highscores_opened_file.close()
+        for name in self.text_save_file_names:
+            with open(file + name + '.txt', 'a+') as f: f.read()
+
+    def load_highscores(self):
+
+        self.array_high_scores = [ [], [], [] ]
+        self.array_high_scores_names = [ [], [], [] ]
+
+        for i, name in enumerate(self.text_save_file_names):
+            path = cwd + '/highscores/' + name + '.txt'
+
+            with open(path, 'r') as f:
+                lines = f.readlines()
+                for line in lines:
+                    comma_position = line.find(',')
+                    self.array_high_scores[i].append(line[0:comma_position])
+                    self.array_high_scores_names[i].append(line[comma_position+2:])
 
     def save_highscores(self):
         highscores_file_name = (cwd + "/highscores/" 
@@ -160,29 +168,36 @@ class Minesweeper():
 
     def check_highscores(self):
 
-        current_game_time = self.int_current_game_time
+        time = self.int_current_game_time
         temp_list = self.array_high_scores[self.int_current_difficulty]
-        save_score = False
-        
-        for i in range(self.int_number_saved_highscores):
+        save_game = False
 
-            if i >= len(temp_list):
+        for i, list_time in enumerate(temp_list):
+            if time < int(list_time):
+                temp_list.insert(i, time)
+                save_game = True
                 break
-            elif current_game_time < int(temp_list[i]):
-                save_score = True
-                if i == 0:
-                    temp_list = [current_game_time] + temp_list
-                else:
-                    temp_list = (temp_list[0:i] + [str(current_game_time)] 
-                                 + temp_list[i:])
-                    if len(temp_list) > self.int_number_saved_highscores: 
-                        temp_list = temp_list[0:(self.int_number_saved_highscores-1)]     
-                
-                if save_score:
-                    self.array_high_scores[self.int_current_difficulty] = temp_list
-                    self.save_highscores()
-                    return True
+
+        if len(temp_list) < self.int_number_saved_highscores and not save_game:
+            temp_list.append(time)
+            save_game = True
+        else:
+            temp_list = temp_list[0:self.int_number_saved_highscores]
+
+        if save_game: 
+            self.array_high_scores[self.int_current_difficulty] = temp_list
+            # have to send index i to save highsscore for correct naming to times
+            self.save_highscores()
+            return True
+
         return False
+    
+    def reset_highscores(self):
+        file = cwd + "/highscores/"
+        for name in self.text_save_file_names:
+            with open(file + name + '.txt', 'w+') as f: f.read()
+        self.menu_statistics()
+
 
 ### Images
 
@@ -291,7 +306,7 @@ class Minesweeper():
                 elif button_clicked == startup_difficulty_names[3]:
                     self.draw_startup()
                 elif button_clicked == stats_button_names[0]:
-                    print('reset scores! WIP')
+                    self.reset_highscores()
 
             # New game button from within game 
             else:
@@ -458,13 +473,16 @@ class Minesweeper():
         self.draw_startup_buttons(case=1)
     
     def menu_statistics(self):
+        self.load_highscores()
         self.canvas.delete("all")
         for i in range(3):
+            if not self.array_high_scores[i]:
+                break
             this_x = 150 + 250*i
             this_y = 30
             
             self.canvas.create_text(this_x, this_y,  anchor=N, text='~ {0} ~'.format(startup_difficulty_names[i]), fill='#ffffff', font=self.font_text)
-            self.canvas.create_rectangle(this_x - 110, this_y + game_border, this_x + 110, this_y + 350, fill=custom_colors[1])
+            self.canvas.create_rectangle(this_x - 110, this_y + game_border, this_x + 110, this_y + 370, fill=custom_colors[1])
 
             for j, time in enumerate(self.array_high_scores[i]):
                 self.canvas.create_text(this_x - 80, this_y + 30*(j+2),  anchor=N, text=time, font=self.font_text)
