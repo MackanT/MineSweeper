@@ -8,7 +8,7 @@ import os
 import threading
 import numpy as np
 import random
-from Button import Button
+from Button import Button, Slide_Button, Pop_Button
 from Tile import Tile, TileState
 
 ### Game Parameters
@@ -269,14 +269,14 @@ class Minesweeper():
                         if not button.get_button_highlighted():
                             self.play_sound('home_button')
                             button.set_button_highlighted(True)
-                            button.is_selected(True, disp=-50)
+                            button.is_selected(True)
                         # Mouse remains on button
                         else: 
                             button.set_button_highlighted(True)
                     else: 
                         # Mouse leaves button
                         if button.get_button_highlighted():
-                            button.is_selected(False, disp=-50)
+                            button.is_selected(False)
                         # Mouse is outside of button
                         button.set_button_highlighted(False)
 
@@ -408,7 +408,7 @@ class Minesweeper():
                 h = button_height
 
             self.array_startup_buttons.append(
-                    Button(
+                    Pop_Button(
                         canvas=self.canvas,
                         x_pos=x,
                         y_pos=y,
@@ -416,7 +416,8 @@ class Minesweeper():
                         height=h,
                         text=name, 
                         color=custom_colors[1],
-                        font=self.font_text 
+                        font=self.font_text,
+                        x_size=30,
                     )
             )
 

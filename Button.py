@@ -1,8 +1,6 @@
 from tkinter import *
 from tkinter import font
 
-from numpy.lib.function_base import delete
-
 class Button:
 
     def __init__(self, x_pos=0, y_pos=0, width=10, height=10, text='', font=None, color=None, canvas=None):
@@ -27,15 +25,6 @@ class Button:
         self.canvas.delete(self.button_area)
         self.canvas.delete(self.button_text)
 
-    def is_selected(self, state, disp=0):
-        
-        if state:
-            self.canvas.move(self.button_area, disp, 0)
-            self.canvas.move(self.button_text, disp, 0)
-        else:
-            self.canvas.move(self.button_area, -disp, 0)
-            self.canvas.move(self.button_text, -disp, 0)
-
     def get_x(self):
         return self.x_pos
 
@@ -51,12 +40,6 @@ class Button:
     def get_name(self):
         return self.text
 
-    def set_button_highlighted(self, state):
-        self.mouse_in_box = state
-
-    def get_button_highlighted(self):
-        return self.mouse_in_box
-
     def point_in_box(self, x, y):
 
         x_bool = (x >= self.x_pos) and (x <= self.x_pos + self.width)
@@ -64,3 +47,45 @@ class Button:
 
         if x_bool and y_bool: return True
         else: return False
+    
+    def set_button_highlighted(self, state):
+        self.mouse_in_box = state
+
+    def get_button_highlighted(self):
+        return self.mouse_in_box
+
+class Slide_Button(Button):
+
+    def __init__(self, x_pos=0, y_pos=0, width=10, height=10, text='', font=None, color=None, canvas=None, x_slide=0, y_slide=0):
+        
+        super().__init__(x_pos, y_pos, width, height, text, font, color, canvas)
+
+        self.x_slide = x_slide
+        self.y_slide = y_slide
+    
+    def is_selected(self, state):
+        
+        if state:
+            self.canvas.move(self.button_area, self.x_slide, self.y_slide)
+            self.canvas.move(self.button_text, self.x_slide, self.y_slide)
+        else:
+            self.canvas.move(self.button_area, -self.x_slide, -self.y_slide)
+            self.canvas.move(self.button_text, -self.x_slide, -self.y_slide)
+
+class Pop_Button(Button):
+
+    def __init__(self, x_pos=0, y_pos=0, width=10, height=10, text='', font=None, color=None, canvas=None, x_size=0, y_size=0):
+        
+        super().__init__(x_pos, y_pos, width, height, text, font, color, canvas)
+
+        self.x_size = x_size
+        self.y_size = y_size
+    
+    def is_selected(self, state):
+        
+        x0, y0, x1, y1 = self.canvas.coords(self.button_area)
+
+        if state:
+            self.canvas.coords(self.button_area, x0-self.x_size, y0-self.y_size, x1+self.x_size, y1+self.y_size)
+        else:
+            self.canvas.coords(self.button_area, x0+self.x_size, y0+self.y_size, x1-self.x_size, y1-self.y_size)
