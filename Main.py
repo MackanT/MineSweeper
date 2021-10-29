@@ -27,6 +27,7 @@ startup_name = 'The Electric Boogaloo - Minesweeper 2'
 startup_button_names = ['New Game', 'Stats', 'Settings', 'Credits', 'Quit']
 startup_difficulty_names = ['Easy', 'Medium', 'Hard', 'Back']
 stats_button_names = ['Reset', 'Back']
+credits_button_names = ['Back']
 game_button_names = ['X', 'New Game']
 
 game_border = 50
@@ -105,7 +106,7 @@ class Minesweeper():
 
         self.int_current_difficulty = None
         
-        self.play_sound('main')
+        # self.play_sound('main')
         self.draw_startup()
 
         self.start_timer()
@@ -123,8 +124,8 @@ class Minesweeper():
             self.canvas.itemconfig(self.display_time_marker, 
                                    text=str(self.int_current_game_time)
                                    )
-        if not self.song.is_playing():
-            self.play_sound('main')
+        # if not self.song.is_playing():
+        #     self.play_sound('main')
 
     def reset_timer(self):
         self.int_current_game_time = 0
@@ -258,68 +259,67 @@ class Minesweeper():
                 self.tile_action('flag', event, space)
     
     def moved_mouse(self, event):
-            """ Fired by mouse movement, calls appropriate function depending on game state """
-            if (self.game_state == Game_state.MENU): 
-                
-                x, y = event.x, event.y
+        """ Fired by mouse movement, calls appropriate function depending on game state """
+        if (self.game_state == Game_state.MENU): 
+            
+            x, y = event.x, event.y
 
-                for button in self.array_startup_buttons:
-                    if button.point_in_box(x, y): 
-                        # First highlighted
-                        if not button.get_button_highlighted():
-                            self.play_sound('home_button')
-                            button.set_button_highlighted(True)
-                            button.is_selected(True)
-                        # Mouse remains on button
-                        else: 
-                            button.set_button_highlighted(True)
+            for button in self.array_startup_buttons:
+                if button.point_in_box(x, y): 
+                    # First highlighted
+                    if not button.get_button_highlighted():
+                        self.play_sound('home_button')
+                        button.set_button_highlighted(True)
+                        button.is_selected(True)
+                    # Mouse remains on button
                     else: 
-                        # Mouse leaves button
-                        if button.get_button_highlighted():
-                            button.is_selected(False)
-                        # Mouse is outside of button
-                        button.set_button_highlighted(False)
+                        button.set_button_highlighted(True)
+                else: 
+                    # Mouse leaves button
+                    if button.get_button_highlighted():
+                        button.is_selected(False)
+                    # Mouse is outside of button
+                    button.set_button_highlighted(False)
 
     def canvas_click(self, event):
-            # Use buttons on startup screen
-            if self.game_state == Game_state.MENU:
+        # Use buttons on startup screen
+        if self.game_state == Game_state.MENU:
 
-                button_clicked = self.find_clicked_button(event.x, event.y, self.array_startup_buttons)
-                if button_clicked == None: return
+            button_clicked = self.find_clicked_button(event.x, event.y, self.array_startup_buttons)
+            if button_clicked == None: return
 
-                if button_clicked == startup_button_names[0]:
-                    self.menu_difficulty_select()
-                elif button_clicked == startup_button_names[1]:
-                    self.menu_statistics()
-                elif button_clicked == startup_button_names[2]:
-                    self.menu_settings()
-                elif button_clicked == startup_button_names[3]: 
-                    self.menu_credits()
-                elif button_clicked == startup_button_names[4]:
-                    self.window.destroy()
-                elif button_clicked == startup_difficulty_names[0]:
-                    self.leave_startup(0)
-                elif button_clicked == startup_difficulty_names[1]:
-                    self.leave_startup(1)
-                elif button_clicked == startup_difficulty_names[2]:
-                    self.leave_startup(2)
-                elif button_clicked == startup_difficulty_names[3]:
-                    self.draw_startup()
-                elif button_clicked == stats_button_names[0]:
-                    self.reset_highscores()
+            if button_clicked == startup_button_names[0]:
+                self.menu_difficulty_select()
+            elif button_clicked == startup_button_names[1]:
+                self.menu_statistics()
+            elif button_clicked == startup_button_names[2]:
+                self.menu_settings()
+            elif button_clicked == startup_button_names[3]: 
+                self.menu_credits()
+            elif button_clicked == startup_button_names[4]:
+                self.window.destroy()
+            elif button_clicked == startup_difficulty_names[0]:
+                self.leave_startup(0)
+            elif button_clicked == startup_difficulty_names[1]:
+                self.leave_startup(1)
+            elif button_clicked == startup_difficulty_names[2]:
+                self.leave_startup(2)
+            elif button_clicked == startup_difficulty_names[3]:
+                self.draw_startup()
+            elif button_clicked == stats_button_names[0]:
+                self.reset_highscores()
 
-            # New game button from within game 
-            else:
-                
-                button_clicked = self.find_clicked_button(event.x, event.y, self.array_game_buttons)
-                if button_clicked == None: return
-                
-                if button_clicked == game_button_names[0]:
-                    self.draw_startup()
-                elif button_clicked == game_button_names[1]:
-                    self.new_game()
-                
-
+        # New game button from within game 
+        else:
+            
+            button_clicked = self.find_clicked_button(event.x, event.y, self.array_game_buttons)
+            if button_clicked == None: return
+            
+            if button_clicked == game_button_names[0]:
+                self.draw_startup()
+            elif button_clicked == game_button_names[1]:
+                self.new_game()
+            
 
 ### Draw Game
 
@@ -332,7 +332,7 @@ class Minesweeper():
         self.canvas.config(width=startup_width,height=startup_height)
         self.window.geometry('%dx%d'%(startup_width, startup_height))
 
-        self.draw_startup_buttons(case=0)
+        self.draw_startup_buttons(x=startup_width/2, y=0, x_move=-50, button=Slide_Button)
         self.canvas.create_image(game_border,startup_height/2, anchor=W, 
                                 image = self.start_up_splash)
     
@@ -378,46 +378,35 @@ class Minesweeper():
                                         fill='white', font=self.font_text, 
                                         text='0')
 
-    def draw_startup_buttons(self, case=0, anchor='E'):
-        
-        button_list = startup_button_names
+    def draw_startup_buttons(self, x, y, border=10, list=startup_button_names, vertical=True, button=Button, x_move=0, y_move=0):
 
-        if case == 1:
-            button_list = startup_difficulty_names
-        if case == 2:
-            button_list = stats_button_names
+        button_len = len(list)
 
-        button_len = len(button_list)
-
-        for i, item in enumerate(self.array_startup_buttons):
-            item.delete_button()
+        for item in self.array_startup_buttons: item.delete_button()
         self.array_startup_buttons.clear()
 
-        for i, name in enumerate(button_list):
-            if anchor == 'E':
-                button_height = int( (startup_height - 2*game_border) / button_len)
-                x = startup_width/2
-                y = game_border+i*button_height
-                w = startup_width/2-game_border
-                h = 0.7*button_height
-            elif anchor == 'S':
-                button_height = 2*game_border
-                x = startup_width/(button_len + 1)*(i + 1) - 2*game_border
-                y = startup_height - 3*game_border
-                w = startup_width/(button_len + 1)-game_border
-                h = button_height
+        dx = 0 if vertical else 1
+        dy = 1 if vertical else 0
+    
+        width = dy*(startup_width - x - 2*border) + dx*int(((startup_width-x)-(button_len+1)*border)/button_len)
+        height = dx*(startup_height - y - 2*border) + dy*int(((startup_height-y)-(button_len+1)*border)/button_len)
 
+        for i, name in enumerate(list):
+
+            x_pos = x + i*dx*(width) + dx*(i+1)*border
+            y_pos = y + i*dy*(height) + dy*(i+1)*border
             self.array_startup_buttons.append(
-                    Pop_Button(
+                    button(
                         canvas=self.canvas,
-                        x_pos=x,
-                        y_pos=y,
-                        width=w,
-                        height=h,
+                        x_pos=x_pos,
+                        y_pos=y_pos,
+                        width=width,
+                        height=height,
                         text=name, 
                         color=custom_colors[1],
                         font=self.font_text,
-                        x_size=30,
+                        x_anim=x_move,
+                        y_anim=y_move
                     )
             )
 
@@ -471,31 +460,35 @@ class Minesweeper():
         self.new_game()
 
     def menu_difficulty_select(self):
-        self.draw_startup_buttons(case=1)
+        self.draw_startup_buttons(list=startup_difficulty_names, x=startup_width/2, y=0, x_move=-50, button=Slide_Button)
     
     def menu_statistics(self):
         self.load_highscores()
         self.canvas.delete("all")
         for i in range(3):
-            if not self.array_high_scores[i]:
-                break
+            
             this_x = 150 + 250*i
             this_y = 30
             
             self.canvas.create_text(this_x, this_y,  anchor=N, text='~ {0} ~'.format(startup_difficulty_names[i]), fill='#ffffff', font=self.font_text)
             self.canvas.create_rectangle(this_x - 110, this_y + game_border, this_x + 110, this_y + 370, fill=custom_colors[1])
+            if not self.array_high_scores[i]:
+                pass
+            else:
+                for j, time in enumerate(self.array_high_scores[i]):
+                    self.canvas.create_text(this_x - 80, this_y + 30*(j+2),  anchor=N, text=time, font=self.font_text)
+                    self.canvas.create_text(this_x + 20, this_y + 30*(j+2),  anchor=N, text=' - {0}'.format(self.array_high_scores_names[i][j]), font=self.font_text)
 
-            for j, time in enumerate(self.array_high_scores[i]):
-                self.canvas.create_text(this_x - 80, this_y + 30*(j+2),  anchor=N, text=time, font=self.font_text)
-                self.canvas.create_text(this_x + 20, this_y + 30*(j+2),  anchor=N, text=' - {0}'.format(self.array_high_scores_names[i][j]), font=self.font_text)
-
-        self.draw_startup_buttons(case=2, anchor='S')
+        self.draw_startup_buttons(list=stats_button_names, x=0, y=startup_height-100, vertical=False, x_move=5, y_move=5, button=Pop_Button)
 
     def menu_settings(self):
         print('menu settings')
 
     def menu_credits(self):
-        print('menu credits')
+        self.canvas.delete("all")
+        self.canvas.create_text(10, game_border,  anchor=NW, text='Thanks for playing! \n I should really fill this area out with better text at some time', fill='#ffffff', font=self.font_text)
+        self.draw_startup_buttons(x=0,y=startup_height-100, vertical=False, list=credits_button_names, x_move=5, y_move=5, button=Pop_Button)
+        
 
     def new_game(self):
         self.int_current_flags = 0

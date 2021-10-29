@@ -56,36 +56,35 @@ class Button:
 
 class Slide_Button(Button):
 
-    def __init__(self, x_pos=0, y_pos=0, width=10, height=10, text='', font=None, color=None, canvas=None, x_slide=0, y_slide=0):
+    def __init__(self, x_pos=0, y_pos=0, width=10, height=10, text='', font=None, color=None, canvas=None, x_anim=0, y_anim=0):
         
         super().__init__(x_pos, y_pos, width, height, text, font, color, canvas)
 
-        self.x_slide = x_slide
-        self.y_slide = y_slide
+        self.x_anim = x_anim
+        self.y_anim = y_anim
     
     def is_selected(self, state):
-        
         if state:
-            self.canvas.move(self.button_area, self.x_slide, self.y_slide)
-            self.canvas.move(self.button_text, self.x_slide, self.y_slide)
+            self.canvas.move(self.button_area, self.x_anim, self.y_anim)
+            self.canvas.move(self.button_text, self.x_anim, self.y_anim)
         else:
-            self.canvas.move(self.button_area, -self.x_slide, -self.y_slide)
-            self.canvas.move(self.button_text, -self.x_slide, -self.y_slide)
+            self.canvas.move(self.button_area, -self.x_anim, -self.y_anim)
+            self.canvas.move(self.button_text, -self.x_anim, -self.y_anim)
 
 class Pop_Button(Button):
 
-    def __init__(self, x_pos=0, y_pos=0, width=10, height=10, text='', font=None, color=None, canvas=None, x_size=0, y_size=0):
+    def __init__(self, x_pos=0, y_pos=0, width=10, height=10, text='', font=None, color=None, canvas=None, x_anim=0, y_anim=0):
         
         super().__init__(x_pos, y_pos, width, height, text, font, color, canvas)
 
-        self.x_size = x_size
-        self.y_size = y_size
+        self.x_anim = x_anim
+        self.y_anim = y_anim
     
     def is_selected(self, state):
         
         x0, y0, x1, y1 = self.canvas.coords(self.button_area)
 
         if state:
-            self.canvas.coords(self.button_area, x0-self.x_size, y0-self.y_size, x1+self.x_size, y1+self.y_size)
+            self.canvas.coords(self.button_area, x0-self.x_anim, y0-self.y_anim, x1+self.x_anim, y1+self.y_anim)
         else:
-            self.canvas.coords(self.button_area, x0+self.x_size, y0+self.y_size, x1-self.x_size, y1-self.y_size)
+            self.canvas.coords(self.button_area, x0+self.x_anim, y0+self.y_anim, x1-self.x_anim, y1-self.y_anim)
