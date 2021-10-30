@@ -1,0 +1,4 @@
+audio 1
+sound 39
+bgm 100
+use Test

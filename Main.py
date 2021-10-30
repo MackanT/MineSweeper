@@ -3,12 +3,12 @@ from array import *
 from enum import Enum
 from tkinter import font
 from PIL import Image, ImageTk
-import simpleaudio as sa
+import pygame
 import os
 import threading
 import numpy as np
 import random
-from Button import Button, Slide_Button, Pop_Button
+from Button import Button, Slide_Button, Pop_Button, Slider, Toggle_Switch
 from Tile import Tile, TileState
 
 ### Game Parameters
@@ -27,8 +27,11 @@ startup_name = 'The Electric Boogaloo - Minesweeper 2'
 startup_button_names = ['New Game', 'Stats', 'Settings', 'Credits', 'Quit']
 startup_difficulty_names = ['Easy', 'Medium', 'Hard', 'Back']
 stats_button_names = ['Reset', 'Back']
-credits_button_names = ['Back']
+return_button_name = 'Back'
+setting_button_name = ['Save', 'Back']
 game_button_names = ['X', 'New Game']
+
+sound_effect_names = ['home_button', 'explosion', 'flag', 'win']
 
 game_border = 50
 game_tile_width = 40
@@ -40,6 +43,7 @@ class Game_state(Enum):
     START = 1
     GAME = 2
     DONE = 3
+    SETTINGS = 4
 
 class Minesweeper():
     
@@ -73,6 +77,10 @@ class Minesweeper():
         self.game_canvas.bind('<Button-2>', self.middle_click)
         self.window.bind('<space>', self.space_click)
         self.game_canvas.bind('<Button-3>', self.right_click)
+        self.canvas.bind('<B1-Motion>', self.mouse_dragged)
+
+        self.change_username = Entry(self.canvas, width=30)
+        self.change_username.bind("<Return>", self.update_username)
 
         # Graphical Loading
         self.font_text = ("GOST Common", 20, "bold")
@@ -80,18 +88,41 @@ class Minesweeper():
         self.start_up_splash = self.get_image('startup')
 
         # Sound
-        self.sound_home_button = self.load_sound('home_screen')
-        self.sound_explosion = self.load_sound('explosion')
-        self.sound_flag = self.load_sound('flag')
-        self.sound_win = self.load_sound('win')
-        self.sound_bcg = self.load_sound('MineSweeper')
+        pygame.init()
+        self.sound_effects = []
+        for sound_name in sound_effect_names:
+            self.sound_effects.append(self.load_sound(sound_name))
+        self.load_sound('MineSweeper', song=True)
+        
 
         # Highscores
         self.text_save_file_names = ['easy', 'medium', 'hard']
         self.int_number_saved_highscores = 10
-        self.load_highscores()
         self.check_highscore_file()
+        self.load_highscores()
 
+        # Load Game Settings
+        self.load_settings()
+
+        self.array_startup_buttons = []
+        self.array_game_buttons = [None] * len(game_button_names)
+        self.array_current_game_board = []
+
+        self.int_current_difficulty = None
+        
+        self.set_volume()
+        if self.game_settings[0]: pygame.mixer.music.play(-1)
+
+        self.draw_startup()
+        self.start_timer()
+
+    def mainloop(self):
+        self.window.mainloop()
+
+
+### Settings
+
+    def load_settings(self):
         # Fixed Game Settings
         self.int_number_game_rows    = [9, 16, 16]
         self.int_number_game_columns = [9, 16, 30]
@@ -100,20 +131,40 @@ class Minesweeper():
         self.int_current_game_mines = self.int_current_flags = 0
         self.int_current_game_time = 0
 
-        self.array_startup_buttons = []
-        self.array_game_buttons = [None] * len(game_button_names)
-        self.array_current_game_board = []
+        self.game_settings = [0, 0, 0, 0]
 
-        self.int_current_difficulty = None
+        path = cwd + '/settings.txt'
+        with open(path, 'r') as f:
+            lines = (line.rstrip() for line in f) 
+            for i, line in enumerate(lines):
+                comma_position = line.find(' ') + 1
+                self.game_settings[i] = line[comma_position:]
         
-        # self.play_sound('main')
-        self.draw_startup()
+    def save_settings(self):
 
-        self.start_timer()
+        self.game_settings[0] = self.audio_toggle.state
+        self.game_settings[1] = self.audio_slider.value
+        self.game_settings[2] = self.bgm_slider.value
 
-    def mainloop(self):
-        self.window.mainloop()
+        if self.game_settings[0]: pygame.mixer.music.play(-1)
+        else: pygame.mixer.music.stop()
+        self.set_volume()
 
+        path = cwd + '/settings.txt'
+        data = []
+        with open(path, 'r') as f:
+            lines = f.readlines()
+            for line in lines:  
+                data.append(line)
+
+        with open(path, 'w') as f:
+            for i, line in enumerate(data):
+                comma_position = line.find(' ')
+                if i == 3:
+                    f.write('{:s} {}\n'.format(data[i][0:comma_position], self.game_settings[i]))
+                else:
+                    f.write('{:s} {}\n'.format(data[i][0:comma_position], int(self.game_settings[i])))
+            
 
 ### Timer Functions
 
@@ -124,8 +175,6 @@ class Minesweeper():
             self.canvas.itemconfig(self.display_time_marker, 
                                    text=str(self.int_current_game_time)
                                    )
-        # if not self.song.is_playing():
-        #     self.play_sound('main')
 
     def reset_timer(self):
         self.int_current_game_time = 0
@@ -163,7 +212,7 @@ class Minesweeper():
 
         ##### Add code for chanign username!
         for element in self.array_high_scores[self.int_current_difficulty]:
-            output_text = str(element) + ', M@ckanT \n'
+            output_text = str(element) + ', {} \n'.format(self.game_settings[3])
             highscores_opened_file.write(output_text)
         highscores_opened_file.close()
 
@@ -210,27 +259,27 @@ class Minesweeper():
 
 ### Sound 
 
-    def load_sound(self, file_name):
+    def load_sound(self, file_name, song=False):
         """ loads specified sound file as wave object """
-        return sa.WaveObject.from_wave_file(cwd 
-                        + '\\sound\\' + file_name + '.wav')
+        if song: pygame.mixer.music.load(cwd + '\\sound\\' + file_name + '.wav')
+        return pygame.mixer.Sound(cwd + '\\sound\\' + file_name + '.wav')
+        
 
     def play_sound(self, file_name):
         """ Plays specified sound file """ 
-        if file_name == 'home_button':
-            self.sound_home_button.play()
-        elif file_name == 'main':
-            self.song = self.sound_bcg.play()
-        elif file_name == 'explosion':
-            self.sound_explosion.play()
-        elif file_name == 'win':
-            self.sound_win.play()
+        for i, name in enumerate(sound_effect_names):
+            if name == file_name:
+                self.sound_effects[i].play()
+                return
 
+    def set_volume(self):
+        pygame.mixer.music.set_volume(int(self.game_settings[1])/100)
+        for sound in self.sound_effects:
+            sound.set_volume(int(self.game_settings[2])/100)
 
 ### User Input
 
     def left_click(self, event): 
-
         if self.game_state == Game_state.START:
             x, y = self.get_tile(event)
             no_bomb_on_int = x*self.int_current_game_columns + y
@@ -260,7 +309,7 @@ class Minesweeper():
     
     def moved_mouse(self, event):
         """ Fired by mouse movement, calls appropriate function depending on game state """
-        if (self.game_state == Game_state.MENU): 
+        if (self.game_state == Game_state.MENU or self.game_state == Game_state.SETTINGS): 
             
             x, y = event.x, event.y
 
@@ -281,10 +330,30 @@ class Minesweeper():
                     # Mouse is outside of button
                     button.set_button_highlighted(False)
 
+    def mouse_dragged(self, event):
+
+        if self.game_state == Game_state.SETTINGS:
+
+            if self.audio_slider.point_in_box(event.x, event.y):
+                self.audio_slider.move_slider(event.x)
+            elif self.bgm_slider.point_in_box(event.x, event.y):
+                self.bgm_slider.move_slider(event.x)
+
     def canvas_click(self, event):
         # Use buttons on startup screen
-        if self.game_state == Game_state.MENU:
 
+        if self.game_state == Game_state.SETTINGS:
+            if self.audio_toggle.point_in_box(event.x, event.y):
+                self.audio_toggle.toggle_switch()
+            button_clicked = self.find_clicked_button(event.x, event.y, self.array_startup_buttons)
+            if button_clicked == None: return
+            
+            if button_clicked == startup_difficulty_names[3]:
+                self.draw_startup()
+            elif button_clicked == setting_button_name[0]:
+                self.save_settings()
+        
+        elif self.game_state == Game_state.MENU:
             button_clicked = self.find_clicked_button(event.x, event.y, self.array_startup_buttons)
             if button_clicked == None: return
 
@@ -308,6 +377,8 @@ class Minesweeper():
                 self.draw_startup()
             elif button_clicked == stats_button_names[0]:
                 self.reset_highscores()
+            elif button_clicked == setting_button_name[0]:
+                self.save_settings()
 
         # New game button from within game 
         else:
@@ -327,6 +398,7 @@ class Minesweeper():
         
         self.game_state = Game_state.MENU
         self.canvas.delete('all')
+        self.change_username.place_forget()
         self.game_canvas.place_forget()
 
         self.canvas.config(width=startup_width,height=startup_height)
@@ -482,12 +554,37 @@ class Minesweeper():
         self.draw_startup_buttons(list=stats_button_names, x=0, y=startup_height-100, vertical=False, x_move=5, y_move=5, button=Pop_Button)
 
     def menu_settings(self):
-        print('menu settings')
+        self.game_state = Game_state.SETTINGS
+        self.canvas.delete("all")
+
+        white = '#ffffff'
+
+        self.canvas.create_text(game_border, game_border, anchor=NW, font=self.font_text, fill=white, text="Settings")
+        self.canvas.create_line(game_border, 90, game_border + 450, 90, fill=white)
+
+        self.canvas.create_text(game_border, 100, anchor=NW, font=self.font_text, fill=white, text="Audio")
+        self.audio_toggle = Toggle_Switch(350, 100, height=35, canvas=self.canvas, state=int(self.game_settings[0]), font=self.font_small)
+        
+        self.canvas.create_text(game_border, 150, anchor=NW, font=self.font_small, fill=white, text="Audio Level")
+        self.audio_slider = Slider(100, 170, height=30, canvas=self.canvas, font=self.font_text, value=int(self.game_settings[1]), fill=white) 
+        
+        self.canvas.create_text(game_border, 200, anchor=NW, font=self.font_small, fill=white, text="Music Level")
+        self.bgm_slider = Slider(100, 220, height=30, canvas=self.canvas, font=self.font_text, value=int(self.game_settings[2]), fill=white) 
+
+        self.canvas.create_text(game_border, 300, anchor=NW, font=self.font_text, fill=white, text="Username:")
+        self.change_username.place(x=220, y=310)
+        self.change_username.delete(0, END)
+        self.change_username.insert(0, self.game_settings[3])
+
+        self.draw_startup_buttons(x=0,y=startup_height-100, vertical=False, list=setting_button_name, x_move=5, y_move=5, button=Pop_Button)
+
+    def update_username(self, event):
+        self.game_settings[3] = self.change_username.get()
 
     def menu_credits(self):
         self.canvas.delete("all")
         self.canvas.create_text(10, game_border,  anchor=NW, text='Thanks for playing! \n I should really fill this area out with better text at some time', fill='#ffffff', font=self.font_text)
-        self.draw_startup_buttons(x=0,y=startup_height-100, vertical=False, list=credits_button_names, x_move=5, y_move=5, button=Pop_Button)
+        self.draw_startup_buttons(x=0,y=startup_height-100, vertical=False, list=[return_button_name], x_move=5, y_move=5, button=Pop_Button)
         
 
     def new_game(self):

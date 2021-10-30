@@ -18,9 +18,6 @@ class Tile:
         self.color = colors[0]
         self.font = font
 
-        # self.is_hidden = True # Hidden / Opened
-        # self.is_flagged = False
-
         self.state = TileState.HIDDEN
         
         self.is_bomb = False
