@@ -37,6 +37,7 @@ game_border = 50
 game_tile_width = 40
 
 cwd = os.getcwd()
+highscore_path = cwd + '/highscores/highscores.npy'
 
 class Game_state(Enum):
     MENU = 0
@@ -75,7 +76,8 @@ class Minesweeper():
         self.canvas.bind('<Button-1>', self.canvas_click)
         self.game_canvas.bind('<Button-1>', self.left_click)
         self.game_canvas.bind('<Button-2>', self.middle_click)
-        self.window.bind('<space>', self.space_click)
+        self.game_canvas.bind('<space>', self.middle_click)
+        self.game_canvas.bind('<e>', self.debug)
         self.game_canvas.bind('<Button-3>', self.right_click)
         self.canvas.bind('<B1-Motion>', self.mouse_dragged)
 
@@ -182,72 +184,43 @@ class Minesweeper():
 
 ### Highscore Functions
 
-    def check_highscore_file(self):
-        file = cwd + "/highscores/"
-        if not os.path.exists(file): os.mkdir(file)
+    def generate_default_highscores(self):
 
-        for name in self.text_save_file_names:
-            with open(file + name + '.txt', 'a+') as f: f.read()
+        data = np.zeros((3, 2, 10), dtype=object)
+        for i in range(3):
+            for j in range(10):
+                data[i, 0, j] = (j+1)*10*(i+1)
+                data[i, 1, j] = 'MineSweeper Bot'
+
+        with open(highscore_path, 'wb') as f: np.save(f, data, allow_pickle=True)
+
+    def check_highscore_file(self):
+        if not os.path.exists(highscore_path):
+            self.generate_default_highscores()
 
     def load_highscores(self):
-
-        self.array_high_scores = [ [], [], [] ]
-        self.array_high_scores_names = [ [], [], [] ]
-
-        for i, name in enumerate(self.text_save_file_names):
-            path = cwd + '/highscores/' + name + '.txt'
-
-            with open(path, 'r') as f:
-                lines = f.readlines()
-                for line in lines:
-                    comma_position = line.find(',')
-                    self.array_high_scores[i].append(line[0:comma_position])
-                    self.array_high_scores_names[i].append(line[comma_position+2:])
+        with open(highscore_path, 'rb') as f: 
+            self.high_scores = np.load(f, allow_pickle=True)
 
     def save_highscores(self):
-        highscores_file_name = (cwd + "/highscores/" 
-                    + self.text_save_file_names[self.int_current_difficulty] 
-                    + '.txt')
-        highscores_opened_file = open(highscores_file_name, 'w')
-
-        ##### Add code for chanign username!
-        for element in self.array_high_scores[self.int_current_difficulty]:
-            output_text = str(element) + ', {} \n'.format(self.game_settings[3])
-            highscores_opened_file.write(output_text)
-        highscores_opened_file.close()
+        with open(highscore_path, 'wb') as f: np.save(f, self.high_scores)
 
     def check_highscores(self):
-
+        
         time = self.int_current_game_time
-        temp_list = self.array_high_scores[self.int_current_difficulty]
-        save_game = False
+        dif = self.int_current_difficulty
 
-        for i, list_time in enumerate(temp_list):
-            if time < int(list_time):
-                temp_list.insert(i, time)
-                save_game = True
-                break
-
-        if len(temp_list) < self.int_number_saved_highscores and not save_game:
-            temp_list.append(time)
-            save_game = True
-        else:
-            temp_list = temp_list[0:self.int_number_saved_highscores]
-
-        if save_game: 
-            self.array_high_scores[self.int_current_difficulty] = temp_list
-            # have to send index i to save highsscore for correct naming to times
-            self.save_highscores()
-            return True
-
+        for i, data in enumerate(self.high_scores[dif, 0]):
+            if time < data:
+                for j in range(self.int_number_saved_highscores - i):
+                    pos = self.int_number_saved_highscores - j - 1
+                    for k in range(2):
+                        self.high_scores[dif, k, pos] = self.high_scores[dif, k, pos - 1] 
+                self.high_scores[dif, 0, i] = time
+                self.high_scores[dif, 1, i] = self.game_settings[3]
+                self.save_highscores()
+                return True
         return False
-    
-    def reset_highscores(self):
-        file = cwd + "/highscores/"
-        for name in self.text_save_file_names:
-            with open(file + name + '.txt', 'w+') as f: f.read()
-        self.menu_statistics()
-
 
 ### Images
 
@@ -279,8 +252,12 @@ class Minesweeper():
 
 ### User Input
 
+    def debug(self, event):
+        self.check_highscores()
+
     def left_click(self, event): 
         if self.game_state == Game_state.START:
+            self.game_canvas.focus_set()
             x, y = self.get_tile(event)
             no_bomb_on_int = x*self.int_current_game_columns + y
             self.add_bombs(no_bomb_on_int)
@@ -293,19 +270,16 @@ class Minesweeper():
         if self.game_state == (Game_state.GAME or Game_state.START):
            self.tile_action('flag', event)
     
-    def space_click(self, event):
-        self.middle_click(event, space=True)
-
-    def middle_click(self, event, space=False):
+    def middle_click(self, event):
         if self.game_state == (Game_state.GAME or Game_state.START):
-            work_tile = self.tile_action('tile', event, space)
+            work_tile = self.tile_action('tile', event)
             if work_tile == None: return
 
             if work_tile.get_state() == TileState.VISIBLE:
                 if self.count_nearby_flags(work_tile) == work_tile.get_tile_number():
                     self.open_square(work_tile)
             else:
-                self.tile_action('flag', event, space)
+                self.tile_action('flag', event)
     
     def moved_mouse(self, event):
         """ Fired by mouse movement, calls appropriate function depending on game state """
@@ -376,7 +350,7 @@ class Minesweeper():
             elif button_clicked == startup_difficulty_names[3]:
                 self.draw_startup()
             elif button_clicked == stats_button_names[0]:
-                self.reset_highscores()
+                self.generate_default_highscores()
             elif button_clicked == setting_button_name[0]:
                 self.save_settings()
 
@@ -544,12 +518,11 @@ class Minesweeper():
             
             self.canvas.create_text(this_x, this_y,  anchor=N, text='~ {0} ~'.format(startup_difficulty_names[i]), fill='#ffffff', font=self.font_text)
             self.canvas.create_rectangle(this_x - 110, this_y + game_border, this_x + 110, this_y + 370, fill=custom_colors[1])
-            if not self.array_high_scores[i]:
-                pass
-            else:
-                for j, time in enumerate(self.array_high_scores[i]):
-                    self.canvas.create_text(this_x - 80, this_y + 30*(j+2),  anchor=N, text=time, font=self.font_text)
-                    self.canvas.create_text(this_x + 20, this_y + 30*(j+2),  anchor=N, text=' - {0}'.format(self.array_high_scores_names[i][j]), font=self.font_text)
+
+            diff_data = self.high_scores[i]
+            for j in range(self.int_number_saved_highscores):
+                self.canvas.create_text(this_x - 80, this_y + 32*(j+2),  anchor=E, text=diff_data[0, j], font=self.font_small)
+                self.canvas.create_text(this_x - 80, this_y + 32*(j+2),  anchor=W, text=' - {0}'.format(diff_data[1, j]), font=self.font_small)
 
         self.draw_startup_buttons(list=stats_button_names, x=0, y=startup_height-100, vertical=False, x_move=5, y_move=5, button=Pop_Button)
 
@@ -565,10 +538,10 @@ class Minesweeper():
         self.canvas.create_text(game_border, 100, anchor=NW, font=self.font_text, fill=white, text="Audio")
         self.audio_toggle = Toggle_Switch(350, 100, height=35, canvas=self.canvas, state=int(self.game_settings[0]), font=self.font_small)
         
-        self.canvas.create_text(game_border, 150, anchor=NW, font=self.font_small, fill=white, text="Audio Level")
+        self.canvas.create_text(game_border, 150, anchor=NW, font=self.font_small, fill=white, text="Music Level")
         self.audio_slider = Slider(100, 170, height=30, canvas=self.canvas, font=self.font_text, value=int(self.game_settings[1]), fill=white) 
         
-        self.canvas.create_text(game_border, 200, anchor=NW, font=self.font_small, fill=white, text="Music Level")
+        self.canvas.create_text(game_border, 200, anchor=NW, font=self.font_small, fill=white, text="Audio Level")
         self.bgm_slider = Slider(100, 220, height=30, canvas=self.canvas, font=self.font_text, value=int(self.game_settings[2]), fill=white) 
 
         self.canvas.create_text(game_border, 300, anchor=NW, font=self.font_text, fill=white, text="Username:")
@@ -580,6 +553,7 @@ class Minesweeper():
 
     def update_username(self, event):
         self.game_settings[3] = self.change_username.get()
+        self.save_settings()
 
     def menu_credits(self):
         self.canvas.delete("all")
@@ -678,20 +652,18 @@ class Minesweeper():
 
 ### Tile Actions
 
-    def get_tile(self, event, space=False):
+    def get_tile(self, event):
 
-        delta = game_border if space else 0
-            
-        col = (event.x-delta) / game_tile_width
-        row = (event.y-delta) / game_tile_width
+        col = event.x / game_tile_width
+        row = event.y / game_tile_width
         if not 0 < col <= self.int_current_game_columns: return -1, -1
         if not 0 < row <= self.int_current_game_rows: return -1, -1
 
         return int(row), int(col)
 
-    def tile_action(self, function, event, space=False):
+    def tile_action(self, function, event):
         
-        row, col = self.get_tile(event, space)
+        row, col = self.get_tile(event)
         if (row or col) == -1: return
         tile = self.array_current_game_board[row][col]
         
