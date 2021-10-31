@@ -1,12 +1,12 @@
 from tkinter import *
 from array import *
 from enum import Enum
-from tkinter import font
 from PIL import Image, ImageTk
 import pygame
 import os
 import threading
 import numpy as np
+import csv
 import random
 from Button import Button, Slide_Button, Pop_Button, Slider, Toggle_Switch
 from Tile import Tile, TileState
@@ -22,14 +22,6 @@ custom_colors = ['#565554', '#f6f193', '#7c7a77', '#cfd0d2', '#fbd083']
 # Start-up Screen
 startup_width = 800
 startup_height = 600
-startup_color = custom_colors[0]
-startup_name = 'The Electric Boogaloo - Minesweeper 2'
-startup_button_names = ['New Game', 'Stats', 'Settings', 'Credits', 'Quit']
-startup_difficulty_names = ['Easy', 'Medium', 'Hard', 'Back']
-stats_button_names = ['Reset', 'Back']
-return_button_name = 'Back'
-setting_button_name = ['Save', 'Back']
-game_button_names = ['X', 'New Game']
 
 sound_effect_names = ['home_button', 'explosion', 'flag', 'win']
 
@@ -49,15 +41,24 @@ class Game_state(Enum):
 class Minesweeper():
     
     def __init__(self):
+        
+        # Load Application Data              
+        self.button_index = []
+        with open(cwd + '\\settings.csv') as csvfile:
+            csv_reader = csv.reader(csvfile, delimiter=';')
+            for i, row in enumerate(csv_reader):
+                if i == 0: pass
+                elif i == 1: self.button_names = row[2:]
+                else: self.button_index.append(row[1:3+int(row[2])])
 
         # Screen Settings
         self.window = Tk()
-        self.window.title(startup_name)
-        self.window.config(bg=startup_color)
+        self.window.title('The Electric Boogaloo - Minesweeper 2')
+        self.window.config(bg=custom_colors[0])
         self.canvas = Canvas(self.window, 
                              width = 0, 
                              height = 0, 
-                             bg=startup_color,
+                             bg=custom_colors[0],
                              borderwidth=0,
                              highlightthickness=0
                             )
@@ -69,24 +70,21 @@ class Minesweeper():
         self.test_canvas = []
         self.window.resizable(False, False)
         self.canvas.pack()
-        
 
         # Input listeners
         self.canvas.bind('<Motion>', self.moved_mouse)
         self.canvas.bind('<Button-1>', self.canvas_click)
+        self.canvas.bind('<B1-Motion>', self.mouse_dragged)
         self.game_canvas.bind('<Button-1>', self.left_click)
         self.game_canvas.bind('<Button-2>', self.middle_click)
+        self.game_canvas.bind('<Button-3>', self.right_click)
         self.game_canvas.bind('<space>', self.middle_click)
         self.game_canvas.bind('<e>', self.debug)
-        self.game_canvas.bind('<Button-3>', self.right_click)
-        self.canvas.bind('<B1-Motion>', self.mouse_dragged)
 
         self.change_username = Entry(self.canvas, width=30)
         self.change_username.bind("<Return>", self.update_username)
 
         # Graphical Loading
-        self.font_text = ("GOST Common", 20, "bold")
-        self.font_small = ("GOST Common", 12, "bold")
         self.start_up_splash = self.get_image('startup')
 
         # Sound
@@ -98,16 +96,13 @@ class Minesweeper():
         
 
         # Highscores
-        self.text_save_file_names = ['easy', 'medium', 'hard']
         self.int_number_saved_highscores = 10
-        self.check_highscore_file()
         self.load_highscores()
 
         # Load Game Settings
         self.load_settings()
 
-        self.array_startup_buttons = []
-        self.array_game_buttons = [None] * len(game_button_names)
+        self.array_buttons = []
         self.array_current_game_board = []
 
         self.int_current_difficulty = None
@@ -121,6 +116,17 @@ class Minesweeper():
     def mainloop(self):
         self.window.mainloop()
 
+### Code Cleanup
+
+    def get_font(self, size=20, bold=True):
+        if bold: return ("GOST Common", size, "bold")
+        else: return ("GOST Common", size)     
+
+    def get_button_names(self, menu='main_menu', index=-1):
+        for row in self.button_index:
+            if row[0] == menu:
+                if index == -1: return row[2:] 
+                else: return self.button_names[int(row[index+2])]
 
 ### Settings
 
@@ -166,8 +172,7 @@ class Minesweeper():
                     f.write('{:s} {}\n'.format(data[i][0:comma_position], self.game_settings[i]))
                 else:
                     f.write('{:s} {}\n'.format(data[i][0:comma_position], int(self.game_settings[i])))
-            
-
+           
 ### Timer Functions
 
     def start_timer(self):
@@ -181,7 +186,6 @@ class Minesweeper():
     def reset_timer(self):
         self.int_current_game_time = 0
  
-
 ### Highscore Functions
 
     def generate_default_highscores(self):
@@ -199,6 +203,7 @@ class Minesweeper():
             self.generate_default_highscores()
 
     def load_highscores(self):
+        self.check_highscore_file()
         with open(highscore_path, 'rb') as f: 
             self.high_scores = np.load(f, allow_pickle=True)
 
@@ -228,7 +233,6 @@ class Minesweeper():
         
         file_name = cwd + '\\' + folder + '\\' + filename + '.png'
         return PhotoImage(file=file_name)
-
 
 ### Sound 
 
@@ -287,7 +291,7 @@ class Minesweeper():
             
             x, y = event.x, event.y
 
-            for button in self.array_startup_buttons:
+            for button in self.array_buttons:
                 if button.point_in_box(x, y): 
                     # First highlighted
                     if not button.get_button_highlighted():
@@ -319,52 +323,42 @@ class Minesweeper():
         if self.game_state == Game_state.SETTINGS:
             if self.audio_toggle.point_in_box(event.x, event.y):
                 self.audio_toggle.toggle_switch()
-            button_clicked = self.find_clicked_button(event.x, event.y, self.array_startup_buttons)
-            if button_clicked == None: return
-            
-            if button_clicked == startup_difficulty_names[3]:
-                self.draw_startup()
-            elif button_clicked == setting_button_name[0]:
-                self.save_settings()
         
-        elif self.game_state == Game_state.MENU:
-            button_clicked = self.find_clicked_button(event.x, event.y, self.array_startup_buttons)
-            if button_clicked == None: return
+        button_clicked = self.find_clicked_button(event.x, event.y)
+        if button_clicked == None: return
 
-            if button_clicked == startup_button_names[0]:
-                self.menu_difficulty_select()
-            elif button_clicked == startup_button_names[1]:
-                self.menu_statistics()
-            elif button_clicked == startup_button_names[2]:
-                self.menu_settings()
-            elif button_clicked == startup_button_names[3]: 
-                self.menu_credits()
-            elif button_clicked == startup_button_names[4]:
-                self.window.destroy()
-            elif button_clicked == startup_difficulty_names[0]:
-                self.leave_startup(0)
-            elif button_clicked == startup_difficulty_names[1]:
-                self.leave_startup(1)
-            elif button_clicked == startup_difficulty_names[2]:
-                self.leave_startup(2)
-            elif button_clicked == startup_difficulty_names[3]:
-                self.draw_startup()
-            elif button_clicked == stats_button_names[0]:
-                self.generate_default_highscores()
-            elif button_clicked == setting_button_name[0]:
-                self.save_settings()
+        if button_clicked == self.button_names[0]:
+            self.menu_difficulty_select()
+        elif button_clicked == self.button_names[1]:
+            self.menu_statistics()
+        elif button_clicked == self.button_names[2]:
+            self.menu_settings()
+        elif button_clicked == self.button_names[3]: 
+            self.menu_credits()
+        elif button_clicked == self.button_names[4]:
+            self.window.destroy()
+        elif button_clicked == self.button_names[5]:
+            self.leave_startup(0)
+        elif button_clicked == self.button_names[6]:
+            self.leave_startup(1)
+        elif button_clicked == self.button_names[7]:
+            self.leave_startup(2)
+        elif button_clicked == self.button_names[8]:
+            self.draw_startup()
+        elif button_clicked == self.button_names[9]:
+            self.generate_default_highscores()
+        elif button_clicked == self.button_names[10]:
+            self.save_settings()
+        elif button_clicked == self.button_names[11]:
+            self.draw_startup()
+        elif button_clicked == self.button_names[12]:
+            self.new_game()
 
-        # New game button from within game 
-        else:
-            
-            button_clicked = self.find_clicked_button(event.x, event.y, self.array_game_buttons)
-            if button_clicked == None: return
-            
-            if button_clicked == game_button_names[0]:
-                self.draw_startup()
-            elif button_clicked == game_button_names[1]:
-                self.new_game()
-            
+### Automated Player
+
+    def minesweeper_bot(self):
+        1
+
 
 ### Draw Game
 
@@ -378,36 +372,35 @@ class Minesweeper():
         self.canvas.config(width=startup_width,height=startup_height)
         self.window.geometry('%dx%d'%(startup_width, startup_height))
 
-        self.draw_startup_buttons(x=startup_width/2, y=0, x_move=-50, button=Slide_Button)
+        self.draw_buttons(x=startup_width/2, y=0, x_move=-50, list='main_menu', button=Slide_Button)
         self.canvas.create_image(game_border,startup_height/2, anchor=W, 
                                 image = self.start_up_splash)
     
     def draw_board(self):
 
-        self.array_current_game_board = [[Tile(i, j, game_tile_width, self.font_text, self.game_canvas) for j in range(self.int_current_game_columns)] for i in range(self.int_current_game_rows)]
+        self.array_current_game_board = [[Tile(i, j, game_tile_width, self.get_font(), self.game_canvas) for j in range(self.int_current_game_columns)] for i in range(self.int_current_game_rows)]
         
         win_width = self.int_current_game_columns * game_tile_width + 2*game_border
         win_height = self.int_current_game_rows * game_tile_width + 2*game_border
 
         self.canvas.config(width=win_width,height=game_border)
         self.window.geometry('%dx%d'%(win_width, win_height))
-
-        self.array_game_buttons[0] = Button(x_pos = game_border/2, 
+        self.array_buttons[0] = Button(x_pos = game_border/2, 
                                       y_pos = 10, 
                                       width = game_border, 
                                       height = 30, 
-                                      text = game_button_names[0], 
-                                      font = self.font_small,
+                                      text = self.get_button_names(menu='game_screen', index=0),
+                                      font = self.get_font(size=12),
                                       color = custom_colors[1], 
                                       canvas = self.canvas
                                       )
 
-        self.array_game_buttons[1] = Button(x_pos = win_width/2-game_border, 
+        self.array_buttons[1] = Button(x_pos = win_width/2-game_border, 
                                       y_pos = 10, 
                                       width = 2*game_border, 
                                       height = 30, 
-                                      text = game_button_names[1], 
-                                      font = self.font_small,
+                                      text = self.get_button_names(menu='game_screen', index=1),
+                                      font = self.get_font(size=12),
                                       color = custom_colors[1], 
                                       canvas = self.canvas
                                       )
@@ -418,18 +411,24 @@ class Minesweeper():
         time_y = game_border/2
 
         self.display_flag_marker = self.canvas.create_text(flag_x, flag_y, 
-                                        fill='white', font=self.font_text, 
+                                        fill='white', font=self.get_font(), 
                                         text=str(self.int_current_game_mines))
         self.display_time_marker = self.canvas.create_text(time_x, time_y, 
-                                        fill='white', font=self.font_text, 
+                                        fill='white', font=self.get_font(), 
                                         text='0')
 
-    def draw_startup_buttons(self, x, y, border=10, list=startup_button_names, vertical=True, button=Button, x_move=0, y_move=0):
+    def draw_buttons(self, x, y, border=10, list=None, vertical=True, button=Button, x_move=0, y_move=0):
 
-        button_len = len(list)
+        indexes = self.get_button_names(list)
+        indexes = [int(i) for i in indexes]
+        button_len = len(indexes)
 
-        for item in self.array_startup_buttons: item.delete_button()
-        self.array_startup_buttons.clear()
+        list = np.zeros(button_len, dtype=object)
+        for i, ind in enumerate(indexes):
+            list[i] = self.button_names[ind]   
+
+        for item in self.array_buttons: item.delete_button()
+        self.array_buttons.clear()
 
         dx = 0 if vertical else 1
         dy = 1 if vertical else 0
@@ -441,7 +440,7 @@ class Minesweeper():
 
             x_pos = x + i*dx*(width) + dx*(i+1)*border
             y_pos = y + i*dy*(height) + dy*(i+1)*border
-            self.array_startup_buttons.append(
+            self.array_buttons.append(
                     button(
                         canvas=self.canvas,
                         x_pos=x_pos,
@@ -450,7 +449,7 @@ class Minesweeper():
                         height=height,
                         text=name, 
                         color=custom_colors[1],
-                        font=self.font_text,
+                        font=self.get_font(),
                         x_anim=x_move,
                         y_anim=y_move
                     )
@@ -462,13 +461,13 @@ class Minesweeper():
         dy = int(self.game_canvas.winfo_height()/2)
 
         self.draw_rectangle(dx - 3*game_border, dy - game_border, dx + 3*game_border, dy + game_border, fill='#fbd083', alpha=.6)
-        self.game_canvas.create_text(dx, dy-5, anchor=S, text='Congratulations!', font=self.font_text)
+        self.game_canvas.create_text(dx, dy-5, anchor=S, text='Congratulations!', font=self.get_font())
         if self.check_highscores():
             win_text = '-- New high score --  \n {0} seconds!'.format(self.int_current_game_time)
         else:
             win_text = 'You completed the \n game in {0} seconds!'.format(self.int_current_game_time)
 
-        self.game_canvas.create_text(dx, dy+5, anchor=N, text=win_text, font=self.font_small, justify=CENTER)    
+        self.game_canvas.create_text(dx, dy+5, anchor=N, text=win_text, font=self.get_font(size=12), justify=CENTER)    
         
     def draw_lose_screen(self):
 
@@ -476,8 +475,8 @@ class Minesweeper():
         dy = int(self.game_canvas.winfo_height()/2)
 
         self.draw_rectangle(dx - 3*game_border, dy - game_border, dx + 3*game_border, dy + game_border, fill='#ed2939', alpha=.8)
-        self.game_canvas.create_text(dx, dy-5, anchor=S, text='Failure!', font=self.font_text)
-        self.game_canvas.create_text(dx, dy+5, anchor=N, text='You failed in securing the mines!', font=self.font_small, justify=CENTER)
+        self.game_canvas.create_text(dx, dy-5, anchor=S, text='Failure!', font=self.get_font())
+        self.game_canvas.create_text(dx, dy+5, anchor=N, text='You failed in securing the mines!', font=self.get_font(size=12), justify=CENTER)
 
     def draw_rectangle(self, x1, y1, x2, y2, **kwargs):
         if 'alpha' in kwargs:
@@ -506,7 +505,7 @@ class Minesweeper():
         self.new_game()
 
     def menu_difficulty_select(self):
-        self.draw_startup_buttons(list=startup_difficulty_names, x=startup_width/2, y=0, x_move=-50, button=Slide_Button)
+        self.draw_buttons(list='difficulty_screen', x=startup_width/2, y=0, x_move=-50, button=Slide_Button)
     
     def menu_statistics(self):
         self.load_highscores()
@@ -516,15 +515,15 @@ class Minesweeper():
             this_x = 150 + 250*i
             this_y = 30
             
-            self.canvas.create_text(this_x, this_y,  anchor=N, text='~ {0} ~'.format(startup_difficulty_names[i]), fill='#ffffff', font=self.font_text)
+            self.canvas.create_text(this_x, this_y,  anchor=N, text='~ {0} ~'.format(self.button_names[int(self.get_button_names('difficulty_screen')[i])]), fill='#ffffff', font=self.get_font())
             self.canvas.create_rectangle(this_x - 110, this_y + game_border, this_x + 110, this_y + 370, fill=custom_colors[1])
 
             diff_data = self.high_scores[i]
             for j in range(self.int_number_saved_highscores):
-                self.canvas.create_text(this_x - 80, this_y + 32*(j+2),  anchor=E, text=diff_data[0, j], font=self.font_small)
-                self.canvas.create_text(this_x - 80, this_y + 32*(j+2),  anchor=W, text=' - {0}'.format(diff_data[1, j]), font=self.font_small)
+                self.canvas.create_text(this_x - 80, this_y + 32*(j+2),  anchor=E, text=diff_data[0, j], font=self.get_font(size=12))
+                self.canvas.create_text(this_x - 80, this_y + 32*(j+2),  anchor=W, text=' - {0}'.format(diff_data[1, j]), font=self.get_font(size=12))
 
-        self.draw_startup_buttons(list=stats_button_names, x=0, y=startup_height-100, vertical=False, x_move=5, y_move=5, button=Pop_Button)
+        self.draw_buttons(list='stats_screen', x=0, y=startup_height-100, vertical=False, x_move=5, y_move=5, button=Pop_Button)
 
     def menu_settings(self):
         self.game_state = Game_state.SETTINGS
@@ -532,24 +531,24 @@ class Minesweeper():
 
         white = '#ffffff'
 
-        self.canvas.create_text(game_border, game_border, anchor=NW, font=self.font_text, fill=white, text="Settings")
+        self.canvas.create_text(game_border, game_border, anchor=NW, font=self.get_font(), fill=white, text="Settings")
         self.canvas.create_line(game_border, 90, game_border + 450, 90, fill=white)
 
-        self.canvas.create_text(game_border, 100, anchor=NW, font=self.font_text, fill=white, text="Audio")
-        self.audio_toggle = Toggle_Switch(350, 100, height=35, canvas=self.canvas, state=int(self.game_settings[0]), font=self.font_small)
+        self.canvas.create_text(game_border, 100, anchor=NW, font=self.get_font(), fill=white, text="Audio")
+        self.audio_toggle = Toggle_Switch(350, 100, height=35, canvas=self.canvas, state=int(self.game_settings[0]), font=self.get_font(size=12))
         
-        self.canvas.create_text(game_border, 150, anchor=NW, font=self.font_small, fill=white, text="Music Level")
-        self.audio_slider = Slider(100, 170, height=30, canvas=self.canvas, font=self.font_text, value=int(self.game_settings[1]), fill=white) 
+        self.canvas.create_text(game_border, 150, anchor=NW, font=self.get_font(size=12), fill=white, text="Music Level")
+        self.audio_slider = Slider(100, 170, height=30, canvas=self.canvas, font=self.get_font(), value=int(self.game_settings[1]), fill=white) 
         
-        self.canvas.create_text(game_border, 200, anchor=NW, font=self.font_small, fill=white, text="Audio Level")
-        self.bgm_slider = Slider(100, 220, height=30, canvas=self.canvas, font=self.font_text, value=int(self.game_settings[2]), fill=white) 
+        self.canvas.create_text(game_border, 200, anchor=NW, font=self.get_font(size=12), fill=white, text="Audio Level")
+        self.bgm_slider = Slider(100, 220, height=30, canvas=self.canvas, font=self.get_font(), value=int(self.game_settings[2]), fill=white) 
 
-        self.canvas.create_text(game_border, 300, anchor=NW, font=self.font_text, fill=white, text="Username:")
+        self.canvas.create_text(game_border, 300, anchor=NW, font=self.get_font(), fill=white, text="Username:")
         self.change_username.place(x=220, y=310)
         self.change_username.delete(0, END)
         self.change_username.insert(0, self.game_settings[3])
 
-        self.draw_startup_buttons(x=0,y=startup_height-100, vertical=False, list=setting_button_name, x_move=5, y_move=5, button=Pop_Button)
+        self.draw_buttons(x=0,y=startup_height-100, vertical=False, list='settings_screen', x_move=5, y_move=5, button=Pop_Button)
 
     def update_username(self, event):
         self.game_settings[3] = self.change_username.get()
@@ -557,8 +556,8 @@ class Minesweeper():
 
     def menu_credits(self):
         self.canvas.delete("all")
-        self.canvas.create_text(10, game_border,  anchor=NW, text='Thanks for playing! \n I should really fill this area out with better text at some time', fill='#ffffff', font=self.font_text)
-        self.draw_startup_buttons(x=0,y=startup_height-100, vertical=False, list=[return_button_name], x_move=5, y_move=5, button=Pop_Button)
+        self.canvas.create_text(10, game_border,  anchor=NW, text='Thanks for playing! \n I should really fill this area out with better text at some time', fill='#ffffff', font=self.get_font())
+        self.draw_buttons(x=0,y=startup_height-100, vertical=False, list='credits_screen', x_move=5, y_move=5, button=Pop_Button)
         
 
     def new_game(self):
@@ -644,10 +643,11 @@ class Minesweeper():
 
         return number_of_flags
 
-    def find_clicked_button(self, x, y, button_list):
-        for i, item in enumerate(button_list): 
+    def find_clicked_button(self, x, y):
+
+        for i, item in enumerate(self.array_buttons): 
             if item.point_in_box(x, y):
-                return button_list[i].get_name()
+                return self.array_buttons[i].get_name()
 
 
 ### Tile Actions
