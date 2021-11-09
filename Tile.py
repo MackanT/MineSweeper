@@ -28,6 +28,8 @@ class Tile:
                                                  self.get_x_pos(1), 
                                                  self.get_y_pos(1), 
                                                  fill=self.color)
+        self.canvas.create_text(self.get_x_pos(0)+width/2, self.get_y_pos(0)+width/4, text=16*row + col)
+        self.risk_text = self.canvas.create_text(self.get_x_pos(0)+width/2, self.get_y_pos(0)+3*width/4, text=1)
         
         text_x = self.width/2 + self.col * self.width
         text_y = self.width/2 + self.row * self.width
@@ -54,6 +56,9 @@ class Tile:
             self.set_color(2)
         elif self.state == TileState.HIDDEN:
             self.set_color(0)
+    
+    def update_risk(self, risk):
+        self.canvas.itemconfig(self.risk_text, text='{:.2f}'.format(risk))
 
     def set_color(self, color_number):
         self.canvas.itemconfig(self.tile_area, fill=colors[color_number])

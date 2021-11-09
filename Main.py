@@ -10,6 +10,7 @@ import csv
 import random
 from Button import Button, Slide_Button, Pop_Button, Slider, Toggle_Switch
 from Tile import Tile, TileState
+import time
 
 ### Game Parameters
 
@@ -37,6 +38,7 @@ class Game_state(Enum):
     GAME = 2
     DONE = 3
     SETTINGS = 4
+    BOT = 5
 
 class Minesweeper():
     
@@ -79,7 +81,9 @@ class Minesweeper():
         self.game_canvas.bind('<Button-2>', self.middle_click)
         self.game_canvas.bind('<Button-3>', self.right_click)
         self.game_canvas.bind('<space>', self.middle_click)
-        self.game_canvas.bind('<e>', self.debug)
+        # self.game_canvas.bind('<e>', self.minesweeper_bot)
+        self.game_canvas.focus_set()
+
 
         self.change_username = Entry(self.canvas, width=30)
         self.change_username.bind("<Return>", self.update_username)
@@ -87,28 +91,23 @@ class Minesweeper():
         # Graphical Loading
         self.start_up_splash = self.get_image('startup')
 
+        # Load Game Settings
+        self.load_settings()
+
         # Sound
         pygame.init()
         self.sound_effects = []
         for sound_name in sound_effect_names:
             self.sound_effects.append(self.load_sound(sound_name))
         self.load_sound('MineSweeper', song=True)
-        
+        self.set_volume()
+        if self.game_settings[0]: pygame.mixer.music.play(-1)
 
         # Highscores
         self.int_number_saved_highscores = 10
         self.load_highscores()
-
-        # Load Game Settings
-        self.load_settings()
-
-        self.array_buttons = []
-        self.array_current_game_board = []
-
-        self.int_current_difficulty = None
         
-        self.set_volume()
-        if self.game_settings[0]: pygame.mixer.music.play(-1)
+        self.first_bot_move = True
 
         self.draw_startup()
         self.start_timer()
@@ -140,6 +139,9 @@ class Minesweeper():
         self.int_current_game_time = 0
 
         self.game_settings = [0, 0, 0, 0]
+        
+        self.array_buttons = []
+        self.int_current_difficulty = None
 
         path = cwd + '/settings.txt'
         with open(path, 'r') as f:
@@ -256,9 +258,6 @@ class Minesweeper():
 
 ### User Input
 
-    def debug(self, event):
-        self.check_highscores()
-
     def left_click(self, event): 
         if self.game_state == Game_state.START:
             self.game_canvas.focus_set()
@@ -268,7 +267,7 @@ class Minesweeper():
             self.game_state = Game_state.GAME
         
         if self.game_state == Game_state.DONE: return
-        self.tile_action('open', event)
+        if self.game_state != Game_state.BOT: self.tile_action('open', event)
 
     def right_click(self, event):
         if self.game_state == (Game_state.GAME or Game_state.START):
@@ -353,12 +352,165 @@ class Minesweeper():
             self.draw_startup()
         elif button_clicked == self.button_names[12]:
             self.new_game()
+        elif button_clicked == self.button_names[13]:
+            self.new_game()
+            self.minesweeper_bot()
 
 ### Automated Player
 
-    def minesweeper_bot(self):
-        1
+    def bot_update_risk_numbers(self):
+        for i, row in enumerate(self.array_current_game_board):
+            for j, tile in enumerate(row):
+                tile.update_risk(self.bomb_risk[i*self.int_current_game_columns + j]) 
+        self.window.update()
 
+    def minesweeper_bot(self, x=None, y=None):
+        
+        if self.game_state == Game_state.BOT: return
+
+        if self.first_bot_move:
+            self.game_state = Game_state.BOT
+            game_size = self.int_current_game_rows*self.int_current_game_columns
+            self.seen_board = np.ones(game_size)*-1
+            self.avg_risk = self.int_current_game_mines/game_size
+            self.bomb_risk = np.ones(game_size)*self.avg_risk
+
+            self.seen_data = []
+
+            open_tile = np.random.choice(range(game_size), 1)[0]
+            self.add_bombs(open_tile)
+            x, y = self.calculate_tile(open_tile)
+            self.bot_open_tile(x, y)
+
+            self.first_bot_move = False
+
+        while self.game_state == Game_state.BOT:
+
+            ### No known safe tiles -> guessing
+            num_hidden = np.size(np.where(self.seen_board == -1), 1)
+            new_risk = (self.int_current_game_mines - self.int_current_flags)/num_hidden
+            self.bomb_risk[self.bomb_risk == self.avg_risk] = new_risk
+            self.avg_risk = new_risk
+
+            self.bot_update_risk_numbers()
+
+            lowest_risk = np.where(self.bomb_risk > 0, self.bomb_risk, np.inf).min()
+            valid_indexes = np.where(self.bomb_risk == lowest_risk)[0]
+            open_tile = np.random.choice(valid_indexes, 1)[0]
+            print(open_tile, 'Opening tile with lowest risk, not correct formula')
+            x, y = self.calculate_tile(open_tile)
+            self.bot_open_tile(x, y)
+
+            self.window.update()
+
+    def bot_open_tile(self, x, y):
+
+        self.open_tile_function(self.array_current_game_board[x,y])
+        self.bot_add_surrounding_tiles(x,y)
+        self.window.update()
+
+        # Automatically resolve all empty tiles
+        delete_tile = []
+        for i in self.seen_data:
+            x, y = self.calculate_tile(i)
+            tile_number = self.array_current_game_board[x, y].get_tile_number()
+            self.seen_board[i] = tile_number
+
+            if tile_number == 0: 
+                self.bomb_risk[i] = -5
+                delete_tile.append(i)
+            elif self.bomb_risk[i] == -5:
+                delete_tile.append(i)
+        
+        for i in delete_tile:
+            self.seen_data.remove(i)
+
+        while len(self.seen_data) > 0:
+
+            # self.seen_data.sort()
+
+            tile_num = self.seen_data[0]
+            self.bot_update_seen_risk(tile_num)
+            self.bot_check_flagged_hidden(tile_num)
+            if len(self.seen_data) > 0: self.seen_data.pop(0)
+
+    def bot_update_seen_risk(self, index):
+
+        if self.bomb_risk[index] == -5: return
+
+        x, y = self.calculate_tile(index)
+        self.seen_board[index] = self.array_current_game_board[x,y].get_tile_number()
+        self.bomb_risk[index] = -1
+
+    def bot_check_flagged_hidden(self, index):
+
+        if self.bomb_risk[index] == -5: return
+
+        x, y = self.calculate_tile(index)
+        
+        n_bombs = self.seen_board[index]
+        n_hidden = n_flagged = 0
+        hidden_int = []
+        
+        ## Count number of surrounding tiles
+        surrounding_tiles = self.bot_get_surrounding_tiles(x, y)
+        for tile in surrounding_tiles:
+            tile_state = tile.get_state()
+            if tile_state == TileState.HIDDEN:
+                n_hidden += 1
+                hidden_int.append([tile.get_row(), tile.get_col()])
+            elif tile_state == TileState.FLAGGED:
+                n_flagged += 1
+
+
+        if n_flagged == n_bombs and n_hidden == 0:
+            self.bomb_risk[index] = -5
+
+        elif n_flagged == n_bombs and n_hidden != 0:
+            for point in hidden_int: 
+                x, y = point
+                self.bot_open_tile(x, y)
+                self.bot_add_surrounding_tiles(x, y)
+
+        elif (n_hidden + n_flagged) == n_bombs:
+            for point in hidden_int:
+                x, y = point
+                tile = self.array_current_game_board[x, y]
+                self.int_current_flags += tile.toggle_flag()
+                self.bomb_risk[x*self.int_current_game_columns + y] = 1
+                self.bomb_risk[index] = -5
+                
+                self.bot_add_surrounding_tiles(x, y)
+
+        else:
+            # Fix probabilities!
+            for point in hidden_int:
+                tile_index = point[0]*self.int_current_game_columns + point[1]
+                self.bomb_risk[tile_index] = n_bombs/n_hidden
+
+        self.__update_flags()
+        self.window.update()
+
+    def bot_add_surrounding_tiles(self, x, y):
+        surrounding_tiles = self.bot_get_surrounding_tiles(x, y)
+        for tile in surrounding_tiles:
+            tile_index = tile.get_row()*self.int_current_game_columns + tile.get_col()
+            if self.seen_board[tile_index] != -1:
+                if tile_index not in self.seen_data:
+                    self.seen_data.append(tile_index)
+
+    def bot_get_surrounding_tiles(self, x, y):
+        list = []
+        for k in [x-1 + i for i in range(3)]:
+            for l in [y-1 + i for i in range(3)]: 
+                
+                ok_k = (0 <= k < self.int_current_game_rows)
+                ok_l = (0 <= l < self.int_current_game_columns)
+                same_tile = x == k and y== l
+                
+                if ok_k and ok_l and not same_tile:
+                    list.append(self.array_current_game_board[k, l])
+        return list
 
 ### Draw Game
 
@@ -378,7 +530,10 @@ class Minesweeper():
     
     def draw_board(self):
 
-        self.array_current_game_board = [[Tile(i, j, game_tile_width, self.get_font(), self.game_canvas) for j in range(self.int_current_game_columns)] for i in range(self.int_current_game_rows)]
+        self.array_current_game_board = np.zeros((self.int_current_game_rows, self.int_current_game_columns), dtype=object)
+        for i in range(self.int_current_game_rows):
+            for j in range(self.int_current_game_columns):
+                self.array_current_game_board[i,j] = Tile(i,j,game_tile_width, self.get_font(), self.game_canvas)
         
         win_width = self.int_current_game_columns * game_tile_width + 2*game_border
         win_height = self.int_current_game_rows * game_tile_width + 2*game_border
@@ -400,6 +555,16 @@ class Minesweeper():
                                       width = 2*game_border, 
                                       height = 30, 
                                       text = self.get_button_names(menu='game_screen', index=1),
+                                      font = self.get_font(size=12),
+                                      color = custom_colors[1], 
+                                      canvas = self.canvas
+                                      )
+        
+        self.array_buttons[2] = Button(x_pos = win_width-game_border, 
+                                      y_pos = 10, 
+                                      width = 2*game_border, 
+                                      height = 30, 
+                                      text = self.get_button_names(menu='game_screen', index=2),
                                       font = self.get_font(size=12),
                                       color = custom_colors[1], 
                                       canvas = self.canvas
@@ -486,7 +651,7 @@ class Minesweeper():
             image = Image.new('RGBA', (x2-x1, y2-y1), fill)
             self.test_canvas.append(ImageTk.PhotoImage(image))
             self.game_canvas.create_image(x1, y1, image=self.test_canvas[-1], anchor='nw')
-        self.game_canvas.create_rectangle(x1, y1, x2, y2, **kwargs)
+        return self.game_canvas.create_rectangle(x1, y1, x2, y2, **kwargs)
         
 
 ### Button Reseults
@@ -559,13 +724,14 @@ class Minesweeper():
         self.canvas.create_text(10, game_border,  anchor=NW, text='Thanks for playing! \n I should really fill this area out with better text at some time', fill='#ffffff', font=self.get_font())
         self.draw_buttons(x=0,y=startup_height-100, vertical=False, list='credits_screen', x_move=5, y_move=5, button=Pop_Button)
         
-
     def new_game(self):
         self.int_current_flags = 0
         self.game_state = Game_state.START
+        self.first_bot_move = True
         self.reset_timer()
         self.canvas.delete("all")
         self.draw_board()
+
     
 
 ### Logic
@@ -588,7 +754,7 @@ class Minesweeper():
 
         for i in range(self.int_current_game_columns):
             for j in range(self.int_current_game_rows):
-                tile = self.array_current_game_board[j][i]
+                tile = self.array_current_game_board[j, i]
                 not_bomb = not tile.get_bomb()
                 if tile.get_state() == TileState.HIDDEN and not_bomb : return
 
@@ -606,7 +772,7 @@ class Minesweeper():
         for index in bomb_indexes:
             row = int(index/self.int_current_game_columns)
             col = index%self.int_current_game_columns
-            self.array_current_game_board[row][col].set_bomb()
+            self.array_current_game_board[row, col].set_bomb()
 
         self.calculate_tile_numbers()
 
@@ -614,7 +780,7 @@ class Minesweeper():
         # Calculate adjacent bombs
         for i in range(self.int_current_game_rows):
             for j in range(self.int_current_game_columns):
-                tile = self.array_current_game_board[i][j]
+                tile = self.array_current_game_board[i, j]
                 tile_bomb_number = 0
                 if not tile.get_bomb():
                     for k in range(tile.get_row()-1, tile.get_row()+2):
@@ -637,7 +803,7 @@ class Minesweeper():
                 ok_l = (0 <= l < self.int_current_game_columns)
 
                 if ok_k and ok_l:
-                    new_tile = self.array_current_game_board[k][l]
+                    new_tile = self.array_current_game_board[k, l]
                     if new_tile.get_state() == TileState.FLAGGED:
                         number_of_flags += 1
 
@@ -660,12 +826,19 @@ class Minesweeper():
         if not 0 < row <= self.int_current_game_rows: return -1, -1
 
         return int(row), int(col)
+    
+    def calculate_tile(self, num):
+
+        row = int(num/self.int_current_game_columns)
+        col = num%self.int_current_game_columns
+        return(row, col)
 
     def tile_action(self, function, event):
-        
+        """ functions: 'flag', 'open', 'tile' """
+
         row, col = self.get_tile(event)
         if (row or col) == -1: return
-        tile = self.array_current_game_board[row][col]
+        tile = self.array_current_game_board[row, col]
         
         if function == 'flag':
             self.int_current_flags += tile.toggle_flag()
@@ -677,7 +850,10 @@ class Minesweeper():
             return tile
 
     def open_tile_function(self, tile):
+        if self.game_state == Game_state.DONE: return
         tile.open_tile()
+        if self.game_state == Game_state.BOT:
+            self.seen_data.append(tile.get_row()*self.int_current_game_columns + tile.get_col())
         if tile.get_tile_number() == 0: self.open_square(tile)
         if self.check_loss(tile): return
         self.check_victory()
@@ -699,18 +875,18 @@ class Minesweeper():
                     ok_l = (0 <= l < self.int_current_game_columns)
                     
                     if ok_k and ok_l:
-                        new_tile = self.array_current_game_board[k][l]
+                        new_tile = self.array_current_game_board[k, l]
                         if new_tile.get_state() == TileState.HIDDEN:
                             self.open_tile_function(new_tile)
 
     def __open_tile(self, i, j):
-        self.array_current_game_board[i][j].open_tile()
+        self.array_current_game_board[i, j].open_tile()
 
     def __is_bomb(self, i, j):
-        return self.array_current_game_board[i][j].get_bomb()
+        return self.array_current_game_board[i, j].get_bomb()
 
     def __force_flag(self, i, j):
-        self.array_current_game_board[i][j].force_flag()
+        self.array_current_game_board[i, j].force_flag()
 
 
 ### Update Graphics
